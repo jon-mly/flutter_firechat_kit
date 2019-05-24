@@ -25,9 +25,8 @@ class FirestoreMessageInterface {
     // To create the [Stream] that will listen for the most recent items
     // and for the next ones, we first perform a first simple query to
     // get the last message of this query.
-    return await Firestore.instance
+    return await chatroomReference
         .collection(_messagesCollectionName)
-        .where("chatroomRef", isEqualTo: chatroomReference)
         .orderBy("dateTimestamp", descending: true)
         .limit(minimumSize)
         .getDocuments()
@@ -48,9 +47,8 @@ class FirestoreMessageInterface {
       // Then the Stream is created, and will listen for the messages
       // newer than the one identified as [nextStartBound], and will also
       // listen for the next ones to come since it has no size limit.
-      Stream<List<DocumentSnapshot>> stream = Firestore.instance
+      Stream<List<DocumentSnapshot>> stream = chatroomReference
           .collection(_messagesCollectionName)
-          .where("chatroomRef", isEqualTo: chatroomReference)
           .orderBy("dateTimestamp", descending: true)
           .endAt([nextStartBound.data["dateTimestamp"]])
           .snapshots()
@@ -93,9 +91,8 @@ class FirestoreMessageInterface {
 
     // To create the [Stream] that will listen for a defined array of items, we
     // first perform a first simple query to get the last message of this query.
-    return await Firestore.instance
+    return await chatroomReference
         .collection(_messagesCollectionName)
-        .where("chatroomRef", isEqualTo: chatroomReference)
         .orderBy("dateTimestamp", descending: true)
         .startAt([nextStartBound.data["dateTimestamp"]])
         .limit(sizeLimit)
@@ -115,9 +112,8 @@ class FirestoreMessageInterface {
           // Then the Stream is created, and will listen for the messages
           // newer than the one identified as [nextStartBound], and will also
           // listen for the next ones to come since it has no size limit.
-          Stream<List<DocumentSnapshot>> stream = Firestore.instance
+          Stream<List<DocumentSnapshot>> stream = chatroomReference
               .collection(_messagesCollectionName)
-              .where("chatroomRef", isEqualTo: chatroomReference)
               .orderBy("dateTimestamp", descending: true)
               .startAfter([nextStartBound.data["dateTimestamp"]])
               .endAt([end.data["dateTimestamp"]])
@@ -142,7 +138,7 @@ class FirestoreMessageInterface {
   static Future<FirechatMessage> send(FirechatMessage message) async {
     if (message.selfReference == null)
       message.selfReference =
-          Firestore.instance.collection(_messagesCollectionName).document();
+          message.chatroomRef.collection(_messagesCollectionName).document();
     await Firestore.instance
         .runTransaction((_) => message.selfReference.setData(message.toMap()))
         .catchError((e) {

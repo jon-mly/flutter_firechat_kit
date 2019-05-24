@@ -68,6 +68,7 @@ class FirechatConversation {
     Stream<List<DocumentSnapshot>> _lastListener =
         await FirestoreMessageInterface.streamForRecentAndFutureMessagesIn(
             chatroomReference: _chatroom.selfReference);
+    if (_lastListener == null) return;
     _lastListener.listen((List<DocumentSnapshot> snapshots) {
       List<FirechatMessage> messages = snapshots
           .map((DocumentSnapshot snap) =>
@@ -87,6 +88,7 @@ class FirechatConversation {
     Stream<List<DocumentSnapshot>> _nextListener =
         await FirestoreMessageInterface.streamForOlderMessages(
             chatroomReference: _chatroom.selfReference);
+    if (_nextListener == null) return;
     _nextListener.listen((List<DocumentSnapshot> snapshots) {
       List<FirechatMessage> messages = snapshots
           .map((DocumentSnapshot snap) =>
