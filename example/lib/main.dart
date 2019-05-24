@@ -6,6 +6,8 @@ import 'package:firechat_kit/firechat_kit.dart';
 
 import 'pages/login_page.dart';
 
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
@@ -48,6 +50,7 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
         body: LoginPage(),
       ),
+      navigatorObservers: [routeObserver],
     );
   }
 }

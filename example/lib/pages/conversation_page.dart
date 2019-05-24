@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:firechat_kit/firechat_kit.dart';
 
+import 'package:firechat_kit_example/main.dart';
+
 class ConversationPage extends StatefulWidget {
   final FirechatConversation conversation;
 
@@ -13,7 +15,7 @@ class ConversationPage extends StatefulWidget {
   }
 }
 
-class _ConversationPageState extends State<ConversationPage> {
+class _ConversationPageState extends State<ConversationPage> with RouteAware {
   final FirechatConversation _conversation;
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -30,13 +32,25 @@ class _ConversationPageState extends State<ConversationPage> {
   @override
   void initState() {
     super.initState();
+    // Focus node
     _focusNode = FocusNode();
     _focusNode.addListener(() {
       setState(() {
         _keyboardOpened = _focusNode.hasFocus;
       });
     });
+    // Text Editing Controller
+    _controller.addListener(
+        () => _conversation.userIsComposing(_controller.text.length > 0));
+    // Scroll Controller
     _scrollController.addListener(_scrollViewDidScroll);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Route observer
+    routeObserver.subscribe(this, ModalRoute.of(context));
   }
 
   @override
@@ -45,7 +59,40 @@ class _ConversationPageState extends State<ConversationPage> {
     _scrollController.dispose();
     _controller.dispose();
     _focusNode.dispose();
+    routeObserver.unsubscribe(this);
     super.dispose();
+  }
+
+  //
+  // ########## NAVIGATION EVENTS
+  //
+
+  @override
+  void didPush() {
+    super.didPush();
+    // View is now on the top view.
+    _conversation.userIsFocusing(true);
+  }
+
+  @override
+  void didPopNext() {
+    super.didPopNext();
+    // View is now on the top view.
+    _conversation.userIsFocusing(true);
+  }
+
+  @override
+  void didPushNext() {
+    super.didPushNext();
+    // View is no more on top of the view
+    _conversation.userIsFocusing(false);
+  }
+
+  @override
+  void didPop() {
+    super.didPop();
+    // View is no more on top of the view
+    _conversation.userIsFocusing(false);
   }
 
   //
@@ -53,10 +100,8 @@ class _ConversationPageState extends State<ConversationPage> {
   //
 
   void _sendMessage() {
-    _conversation
-        .sendMessage(_controller.text)
-        .then((_) => _controller.clear())
-        .catchError((e) => print(e));
+    _conversation.sendMessage(_controller.text).catchError((e) => print(e));
+    _controller.clear();
   }
 
   void _delete(FirechatMessage message) {
@@ -196,16 +241,51 @@ class _ConversationPageState extends State<ConversationPage> {
     );
   }
 
+  Widget _messagesListAndTypingInfos() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Expanded(
+          child: _messagesList(),
+        ),
+        // TODO: refactor this indicator
+        StreamBuilder(
+          stream: _conversation.onFocusingUsersUpdate,
+          builder: (BuildContext context, AsyncSnapshot<List<String>> snap) {
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: (snap.hasData)
+                  ? Text("${snap.data.length} people active")
+                  : Container(),
+            );
+          },
+        ),
+        // TODO: refactor this indicator
+        StreamBuilder(
+          stream: _conversation.onComposingUsersUpdate,
+          builder: (BuildContext context, AsyncSnapshot<List<String>> snap) {
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: (snap.hasData && snap.data.isNotEmpty)
+                  ? Text("Someone is typing...")
+                  : Container(),
+            );
+          },
+        )
+      ],
+    );
+  }
+
   Widget _messageListInGestureWrapper() {
     if (_keyboardOpened)
       return GestureDetector(
-        child: _messagesList(),
+        child: _messagesListAndTypingInfos(),
         behavior: HitTestBehavior.opaque,
         onTap: () {
           FocusScope.of(context).requestFocus(FocusNode());
         },
       );
-    return _messagesList();
+    return _messagesListAndTypingInfos();
   }
 
   @override

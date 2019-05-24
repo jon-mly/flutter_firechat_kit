@@ -3,8 +3,7 @@ part of firechat_kit;
 class FirechatConversation {
   DocumentReference _authorRef;
 
-  BehaviorSubject<FirechatChatroom> _chatroomController =
-      BehaviorSubject<FirechatChatroom>();
+  BehaviorSubject<FirechatChatroom> _chatroomController;
   Observable<FirechatChatroom> get onChatroomUpdate =>
       _chatroomController.stream;
   FirechatChatroom _chatroom;
@@ -14,6 +13,27 @@ class FirechatConversation {
   BehaviorSubject<List<FirechatMessage>> _messagesController;
   Observable<List<FirechatMessage>> get onMessagesUpdate =>
       _messagesController.stream;
+
+  // TODO: replace with FirechatUser
+  BehaviorSubject<List<String>> _composingUsersController =
+      BehaviorSubject<List<String>>.seeded([]);
+
+  /// The [Stream] for the list of users that are currently typing a message.
+  ///
+  /// Note : this list excludes the current user.
+  Observable<List<String>> get onComposingUsersUpdate =>
+      _composingUsersController.stream;
+
+  // TODO: replace with FirechatUser
+  BehaviorSubject<List<String>> _focusingUsersController =
+      BehaviorSubject<List<String>>.seeded([]);
+  // TODO: add a Configuration item to set if the current user should be counted or not as a focusing user in this stream
+  /// The [Stream] for the list of users that are currently in the chatroom.
+  ///
+  /// Note : this list excludes the current user by default, but it can be
+  /// changed in the configuration of [FirechatKit].
+  Observable<List<String>> get onFocusingUsersUpdate =>
+      _focusingUsersController.stream;
 
   /// The list of all the [Stream] currently listening
   /// for [FirechatMessage]s.
@@ -31,8 +51,9 @@ class FirechatConversation {
   FirechatConversation.local(
       {@required FirechatChatroom chatroom,
       @required DocumentReference currentUserRef})
-      : _messagesController =
-            BehaviorSubject<List<FirechatMessage>>.seeded([]) {
+      : _messagesController = BehaviorSubject<List<FirechatMessage>>.seeded([]),
+        _chatroomController =
+            BehaviorSubject<FirechatChatroom>.seeded(chatroom) {
     _chatroom = chatroom;
     _authorRef = currentUserRef;
   }
@@ -40,10 +61,23 @@ class FirechatConversation {
   FirechatConversation.streamed(
       {@required FirechatChatroom chatroom,
       @required DocumentReference currentUserRef})
-      : _messagesController = BehaviorSubject<List<FirechatMessage>>() {
+      : _messagesController = BehaviorSubject<List<FirechatMessage>>(),
+        _chatroomController =
+            BehaviorSubject<FirechatChatroom>.seeded(chatroom) {
     _chatroom = chatroom;
     _authorRef = currentUserRef;
-    _streamFirstMessages();
+    _streamChatroomAndFirstMessages();
+  }
+
+  void dispose() async {
+    await _messagesController.drain();
+    _messagesController.close();
+    await _chatroomController.drain();
+    _chatroomController.close();
+    await _composingUsersController.drain();
+    _composingUsersController.close();
+    await _focusingUsersController.drain();
+    _focusingUsersController.close();
   }
 
   //
@@ -54,14 +88,35 @@ class FirechatConversation {
   /// after the [Stream] begins to listen.
   ///
   /// To request older messages, call [requestOlderMessages].
-  Future<void> _streamFirstMessages() async {
+  Future<void> _streamChatroomAndFirstMessages() async {
     // Gets and listens to the stream of the Chatroom.
     FirestoreChatroomInterface.chatroomStreamFor(
             chatroomRef: _chatroom.selfReference)
         .listen((DocumentSnapshot snap) {
       if (snap == null || !snap.exists) return null;
-      _chatroomController.sink
-          .add(FirechatChatroom.fromMap(snap.data, snap.reference));
+
+      // Chatroom Stream update
+      _chatroom = FirechatChatroom.fromMap(snap.data, snap.reference);
+      _chatroomController.sink.add(_chatroom);
+
+      // Composing users Stream update
+      // TODO: replace with FirechatUser
+      List<DocumentReference> otherPeopleComposing = _chatroom
+          .composingPeopleRef
+          .where((DocumentReference ref) => ref != _authorRef)
+          .toList();
+      _composingUsersController.sink
+          .add(List<String>.filled(otherPeopleComposing.length ?? 0, "People"));
+
+      // Focusing users Stream update
+      // TODO: replace with FirechatUser
+      // TODO: handle configuration item to know if the current user should be excluded from this list.
+      List<DocumentReference> peopleFocusing = _chatroom.focusingPeopleRef
+          .where((DocumentReference ref) => ref != _authorRef)
+          .toList();
+      print(peopleFocusing);
+      _focusingUsersController.sink
+          .add(List<String>.filled(peopleFocusing.length ?? 0, "People"));
     });
 
     // Gets and listens to the stream of messages related to the Chatroom.
@@ -100,13 +155,6 @@ class FirechatConversation {
     _streams.add(_nextListener);
   }
 
-  void dispose() async {
-    await _messagesController.drain();
-    _messagesController.close();
-    await _chatroomController.drain();
-    _chatroomController.close();
-  }
-
   /// Gathers all the [FirechatMessage] instances from all the currently active
   /// listeners, sorts them by descending dates and feeds the
   /// [_messagesController]'s sink with the complete result.
@@ -116,6 +164,56 @@ class FirechatConversation {
         (List<FirechatMessage> messages) => messagesToSort.addAll(messages));
     _messagesController
         .add(_orderedByDate(list: _orderedByDate(list: messagesToSort)));
+  }
+
+  //
+  // ########## COMPOSING & FOCUSING PROCESS
+  //
+
+  /// Adds or removes the current user from the list of people who are currently
+  /// focusing the [FirechatChatroom] accordingly to [isFocusing].
+  ///
+  /// This indicates if the user is in the chatroom, and thus if they
+  /// can see the new messages and updates in realtime.
+  ///
+  /// If an error occurs, a [FirechatError] is thrown
+  Future<void> userIsFocusing(bool isFocusing) async {
+    if (_chatroom.isLocal || _chatroom.selfReference == null) return;
+    // No need to call Firestore when its not needed.
+    if ((isFocusing && _chatroom.focusingPeopleRef.contains(_authorRef) ||
+        (!isFocusing && !_chatroom.focusingPeopleRef.contains(_authorRef))))
+      return;
+
+    await FirestoreChatroomInterface.setUserFocusing(
+            chatroom: _chatroom,
+            userReference: _authorRef,
+            isFocusing: isFocusing)
+        .catchError((e) {
+      if (e is FirechatError) throw e;
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
+
+  /// Adds or removes the current user from the list of people who are currently
+  /// composing / typing a message in the [FirechatChatroom] accordingly
+  /// to [isComposing].
+  ///
+  /// If an error occurs, a [FirechatError] is thrown
+  Future<void> userIsComposing(bool isComposing) async {
+    if (_chatroom.isLocal || _chatroom.selfReference == null) return;
+    // No need to call Firestore when its not needed.
+    if ((isComposing && _chatroom.composingPeopleRef.contains(_authorRef) ||
+        (!isComposing && !_chatroom.composingPeopleRef.contains(_authorRef))))
+      return;
+
+    await FirestoreChatroomInterface.setUserIsComposing(
+            chatroom: _chatroom,
+            userReference: _authorRef,
+            isComposing: isComposing)
+        .catchError((e) {
+      if (e is FirechatError) throw e;
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
   }
 
   //
@@ -174,7 +272,7 @@ class FirechatConversation {
       if (e is FirechatError) throw e;
       throw FirechatError.kFirestoreChatroomUploadError;
     });
-    _streamFirstMessages();
+    _streamChatroomAndFirstMessages();
   }
 
   //

@@ -114,7 +114,7 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
             FirechatUser contact = FirechatKit
                 .instance.chatrooms.usersByChatroom[chatroom.selfReference];
             return ListTile(
-              title: Text(contact.displayName ?? contact.userId),
+              title: Text(contact?.displayName ?? contact.userId),
               onTap: () => _getSelectedConversation(chatroom: chatroom),
             );
           },

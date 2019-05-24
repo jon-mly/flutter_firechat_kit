@@ -77,6 +77,8 @@ class FirechatChatrooms {
     FirechatChatroom localChatroom = FirechatChatroom(
         chatroomType: FirechatChatroomType.oneToOne,
         peopleRef: [userDocumentReference, contactRef],
+        composingPeopleRef: [],
+        focusingPeopleRef: [],
         isLocal: true);
     return FirechatConversation.local(
         chatroom: localChatroom, currentUserRef: userDocumentReference);

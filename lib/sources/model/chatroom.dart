@@ -9,11 +9,14 @@ class FirechatChatroom {
   /// The type of the [FirechatChatroom].
   FirechatChatroomType chatroomType;
 
-  /// The list of [User] references for the participants.
+  /// The list of [FirechatUser] references for the participants.
   List<DocumentReference> peopleRef;
 
-//  /// The references list of the [FirechatMessage] sent in the room.
-//  List<DocumentReference> messagesRef;
+  /// The list of [FirechatUser] who are currently composing in this chatroom.
+  List<DocumentReference> composingPeopleRef;
+
+  /// The list of [FirechatUser] who are currently active in the the chatroom.
+  List<DocumentReference> focusingPeopleRef;
 
   /// The [DocumentReference] of this instance.
   DocumentReference selfReference;
@@ -29,8 +32,9 @@ class FirechatChatroom {
       {this.selfReference,
       this.chatroomType,
       this.title,
-//      this.messagesRef,
       this.peopleRef,
+      this.composingPeopleRef,
+      this.focusingPeopleRef,
       this.isLocal: false});
 
   FirechatChatroom.fromMap(
@@ -40,9 +44,10 @@ class FirechatChatroom {
     if (map["chatroomTypeIndex"] != null)
       this.chatroomType = FirechatChatroomType.values[map["chatroomTypeIndex"]];
     this.peopleRef = map["peopleRef"]?.cast<DocumentReference>() ?? null;
-//    this.messagesRef = map["messagesRef"]?.cast<DocumentReference>() ?? null;
-//     Messages are ordered from the older to the newer.
-//    this.messagesRef = messagesRef.reversed.toList();
+    this.composingPeopleRef =
+        map["composingPeopleRef"]?.cast<DocumentReference>() ?? null;
+    this.focusingPeopleRef =
+        map["focusingPeopleRef"]?.cast<DocumentReference>() ?? null;
     this.isLocal = false;
   }
 
@@ -54,7 +59,8 @@ class FirechatChatroom {
       "title": this.title,
       "chatroomTypeIndex": chatroomTypeIndex,
       "peopleRef": this.peopleRef,
-//      "messagesRef": this.messagesRef
+      "composingPeopleRef": this.composingPeopleRef,
+      "focusingPeopleRef": this.focusingPeopleRef
     };
     return map;
   }

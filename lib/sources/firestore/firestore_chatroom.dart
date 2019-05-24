@@ -3,6 +3,10 @@ part of firechat_kit;
 class FirestoreChatroomInterface {
   static final String _chatroomsCollectionName = "chatrooms";
 
+  //
+  // ########## STREAMS
+  //
+
   /// Fetches and returns the [Stream] of all the [DocumentSnapshot] for
   /// [FirechatChatroom]s in which the user takes part.
   ///
@@ -68,6 +72,10 @@ class FirestoreChatroomInterface {
         orElse: () => null);
   }
 
+  //
+  // ########## UPLOAD
+  //
+
   /// Publish the [chatroom] on Firestore.
   ///
   /// If the [chatroom.selfReference] is empty, a value will be set.
@@ -88,5 +96,73 @@ class FirestoreChatroomInterface {
       throw FirechatError.kFirestoreChatroomUploadError;
     });
     return chatroom;
+  }
+
+  //
+  // ########## COMPOSING
+  //
+
+  /// Updates the `composingPeopleRef` of the document related to the [chatroom]
+  /// with the [userReference] added or removed accordingly to [isComposing].
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  static Future<void> setUserIsComposing(
+      {@required FirechatChatroom chatroom,
+      @required DocumentReference userReference,
+      @required bool isComposing}) async {
+    if (chatroom.selfReference == null)
+      throw FirechatError.kNullDocumentReferenceError;
+    if (chatroom.composingPeopleRef == null) chatroom.composingPeopleRef = [];
+
+    if (isComposing && !chatroom.composingPeopleRef.contains(userReference))
+      chatroom.composingPeopleRef =
+          List<DocumentReference>.from(chatroom.composingPeopleRef)
+            ..add(userReference);
+    else if (!isComposing & chatroom.composingPeopleRef.contains(userReference))
+      chatroom.composingPeopleRef =
+          List<DocumentReference>.from(chatroom.composingPeopleRef)
+            ..remove(userReference);
+
+    await Firestore.instance
+        .runTransaction((_) => chatroom.selfReference
+            .updateData({"composingPeopleRef": chatroom.composingPeopleRef}))
+        .catchError((e) {
+      print(e);
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
+
+  //
+  // ########## FOCUSING
+  //
+
+  /// Updates the `focusingPeopleRef` of the document related to the [chatroom]
+  /// with the [userReference] added or removed accordingly to [isFocusing].
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  static Future<void> setUserFocusing(
+      {@required FirechatChatroom chatroom,
+      @required DocumentReference userReference,
+      @required bool isFocusing}) async {
+    if (chatroom.selfReference == null)
+      throw FirechatError.kNullDocumentReferenceError;
+    if (chatroom.focusingPeopleRef == null) chatroom.focusingPeopleRef = [];
+
+    if (isFocusing && !chatroom.focusingPeopleRef.contains(userReference))
+      chatroom.focusingPeopleRef =
+          List<DocumentReference>.from(chatroom.focusingPeopleRef)
+            ..add(userReference);
+    else if (!isFocusing & chatroom.focusingPeopleRef.contains(userReference))
+      chatroom.focusingPeopleRef =
+          List<DocumentReference>.from(chatroom.focusingPeopleRef)
+            ..remove(userReference);
+
+    await Firestore.instance
+        .runTransaction((_) => chatroom.selfReference
+            .updateData({"focusingPeopleRef": chatroom.focusingPeopleRef}))
+        .catchError((e) {
+      print(e);
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
   }
 }
