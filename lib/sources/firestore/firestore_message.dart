@@ -5,6 +5,10 @@ class FirestoreMessageInterface {
   static final int _defaultListenerSize = 20;
   static DocumentSnapshot nextStartBound;
 
+  //
+  // ######### PAGINATED MESSAGES STREAMS
+  //
+
   /// Returns the [Stream] of the most recent [FirechatMessage]s belonging to
   /// the [FirechatChatroom] designated by the given [chatroomReference].
   ///
@@ -34,13 +38,9 @@ class FirestoreMessageInterface {
         .then((List<DocumentSnapshot> documents) {
       // Once the first x messages are found, the last one is registered
       // as the start bound of the stream that will be returned.
-      //
-      // If the count of documents is lower than the size limit, this
-      // means that they are no messages older than the ones the next Stream
-      // will be listening to. Thus, the bound is set to null to indicate that
-      // there is no older message to listen to.
       if (documents.length >= 1)
         nextStartBound = documents[documents.length - 1];
+      // TODO: what for the chatroom which has no message, the stream should still be set if the chatroom exists.
       else
         return null;
 
@@ -101,17 +101,11 @@ class FirestoreMessageInterface {
         .then((List<DocumentSnapshot> documents) {
           // Once the first x messages after the start bound are found, the last one
           // is registered as the start bound of the stream that will be returned.
-          //
-          // But, if the count of documents is lower than the size limit, this
-          // means that they are no messages older than the ones the next Stream
-          // will be listening to. Thus, the bound is set to null to indicate that
-          // there is no older message to listen to.
           if (documents.length < 1) return null;
           DocumentSnapshot end = documents[documents.length - 1];
 
           // Then the Stream is created, and will listen for the messages
-          // newer than the one identified as [nextStartBound], and will also
-          // listen for the next ones to come since it has no size limit.
+          // older than the one identified as [nextStartBound].
           Stream<List<DocumentSnapshot>> stream = chatroomReference
               .collection(_messagesCollectionName)
               .orderBy("dateTimestamp", descending: true)
@@ -130,6 +124,10 @@ class FirestoreMessageInterface {
           return stream;
         });
   }
+
+  //
+  // ######## PUBLICATION & DELETION
+  //
 
   /// Publish the [message] on Firestore (this only adds the document to the
   /// list of all sent messages).

@@ -2,28 +2,137 @@ part of firechat_kit;
 
 class FirestoreChatroomInterface {
   static final String _chatroomsCollectionName = "chatrooms";
+  static final int _defaultListenerSize = 20;
+  static DocumentSnapshot nextStartBound;
 
   //
-  // ########## STREAMS
+  // ########## CHATROOMS PAGINATED STREAMS
   //
 
-  /// Fetches and returns the [Stream] of all the [DocumentSnapshot] for
-  /// [FirechatChatroom]s in which the user takes part.
+  /// Returns the [Stream] for the most recent [FirechatChatroom]s where the
+  /// user related to the given [userReference] takes part.
   ///
-  /// The query is based on the [DocumentReference] of the document related
-  /// to the [FirechatUser] instance of the user. That way, the data is still
-  /// available, even if you change the [FirechatUser.userId].
+  /// This [Stream] will listen for the last [minimumSize] messages, and also
+  /// for the next ones to be updated (thus being more recent).
   ///
-  /// If an error occurs, a [FirechatError] is returned.
-  static Stream<List<DocumentSnapshot>> chatroomsForUser(
-      {@required DocumentReference userReference}) {
-    // TODO: make the path to be flexible / configured.
-    return Firestore.instance
+  /// If an error occurs, or if [userReference] is null, a [FirechatError]
+  /// is thrown.
+  static Future<Stream<List<DocumentSnapshot>>>
+      streamForRecentAndFutureChatroomsFor(
+          {@required DocumentReference userReference, int minimumSize}) async {
+    if (userReference == null) throw FirechatError.kNullDocumentReferenceError;
+
+    if (minimumSize == null) minimumSize = _defaultListenerSize;
+
+    // To create the [Stream] that will listen for the most recent items
+    // and for the next ones, we first perform a first simple query to
+    // get the last message of this query.
+    return await Firestore.instance
         .collection(_chatroomsCollectionName)
-        .where('peopleRef', arrayContains: userReference)
-        .snapshots()
-        .map((QuerySnapshot query) => query.documents);
+        .orderBy("lastMessageDate", descending: true)
+        .where("peopleRef", arrayContains: userReference)
+        .limit(minimumSize)
+        .getDocuments()
+        .then((QuerySnapshot snap) => snap.documents)
+        .then((List<DocumentSnapshot> documents) {
+      Stream<List<DocumentSnapshot>> stream;
+
+      // Once the first x chatrooms are found, the last one is registered
+      // as the start bound of the stream that will be returned.
+      //
+      // If there is no bound to limit the [Stream], the returned stream will
+      // instead listen for all the chatrooms to which the user takes part to.
+      if (documents.length >= 1) {
+        nextStartBound = documents[documents.length - 1];
+        // Then the Stream is created, and will listen for the chatrooms
+        // newer than the one identified as [nextStartBound], and will also
+        // listen for the next ones to be updated since it has no size limit.
+        stream = Firestore.instance
+            .collection(_chatroomsCollectionName)
+            .orderBy("lastMessageDate", descending: true)
+            .where("peopleRef", arrayContains: userReference)
+            .endAt([nextStartBound.data["lastMessageDate"]])
+            .snapshots()
+            .map((QuerySnapshot query) => query.documents);
+      } else {
+        // Then the Stream is created, and will listen for all the chatrooms,
+        // and will also listen for the next ones to be updated since it has no
+        // size limit.
+        stream = Firestore.instance
+            .collection(_chatroomsCollectionName)
+            .orderBy("lastMessageDate", descending: true)
+            .where("peopleRef", arrayContains: userReference)
+            .snapshots()
+            .map((QuerySnapshot query) => query.documents);
+      }
+
+      // If the count of documents is lower than the size limit, this
+      // means that they are no messages older than the ones the next Stream
+      // will be listening to. Thus, the bound is set to null to indicate that
+      // there is no older message to listen to.
+      if (documents.length < minimumSize) nextStartBound = null;
+
+      return stream;
+    });
   }
+
+  /// Returns the [Stream] for older [FirechatChatroom]s where the
+  /// user related to the given [userReference] takes part. These
+  /// are the ones updated before the ones listened by the main [Stream] that has
+  /// been set up using [streamForRecentAndFutureChatroomsFor]. This [Stream]
+  /// will listen for a maximum of [sizeLimit] messages.
+  ///
+  /// This [Stream] will listen for the last [minimumSize] messages, and also
+  /// for the next ones to be opened.
+  ///
+  /// If an error occurs, or if [userReference] is null, a [FirechatError]
+  /// is thrown.
+  static Future<Stream<List<DocumentSnapshot>>> streamOlderChatroomsFor(
+      {@required DocumentReference userReference, int sizeLimit}) async {
+    if (userReference == null) throw FirechatError.kNullDocumentReferenceError;
+
+    if (sizeLimit == null) sizeLimit = _defaultListenerSize;
+
+    // To create the [Stream] that will listen for the most recent items
+    // and for the next ones, we first perform a first simple query to
+    // get the last message of this query.
+    return await Firestore.instance
+        .collection(_chatroomsCollectionName)
+        .orderBy("lastMessageDate", descending: true)
+        .where("peopleRef", arrayContains: userReference)
+        .startAt([nextStartBound.data["lastMessageDate"]])
+        .limit(sizeLimit)
+        .getDocuments()
+        .then((QuerySnapshot snap) => snap.documents)
+        .then((List<DocumentSnapshot> documents) {
+          // Once the first x chatrooms are found, the last one is registered
+          // as the start bound of the stream that will be returned.
+          if (documents.length < 1) return null;
+          DocumentSnapshot end = documents[documents.length - 1];
+
+          // Then the Stream is created, and will listen for the chatrooms
+          // older than the one identified as [nextStartBound].
+          Stream<List<DocumentSnapshot>> stream = Firestore.instance
+              .collection(_chatroomsCollectionName)
+              .orderBy("lastMessageDate", descending: true)
+              .where("peopleRef", arrayContains: userReference)
+              .startAfter([end.data["lastMessageDate"]])
+              .endAt([nextStartBound.data["lastMessageDate"]])
+              .snapshots()
+              .map((QuerySnapshot query) => query.documents);
+          // If the count of documents is lower than the size limit, this
+          // means that they are no messages older than the ones the next Stream
+          // will be listening to. Thus, the bound is set to null to indicate that
+          // there is no older message to listen to.
+          if (documents.length < sizeLimit) nextStartBound = null;
+
+          return stream;
+        });
+  }
+
+  //
+  // ######### SINGLE CHATROOM STREAM
+  //
 
   /// Returns the [Stream] of the document related to the [FirechatChatroom]
   /// designated by [chatroomRef].
@@ -164,5 +273,22 @@ class FirestoreChatroomInterface {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
     });
+  }
+
+  //
+  // ######## MESSAGE SENT UPDATE
+  //
+
+  /// Updates the [FirechatChatroom.lastMessageDate] of the given [chatroom]
+  /// and uploads the modified field to Firestore.
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  static Future<void> updateLastMessageDateFor(
+      {@required FirechatChatroom chatroom, @required DateTime date}) async {
+    if (chatroom.selfReference == null)
+      throw FirechatError.kNullDocumentReferenceError;
+
+    Firestore.instance.runTransaction((_) => chatroom.selfReference
+        .setData({"lastMessageDate": date.millisecondsSinceEpoch}));
   }
 }

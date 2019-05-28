@@ -21,6 +21,9 @@ class FirechatChatroom {
   /// The [DocumentReference] of this instance.
   DocumentReference selfReference;
 
+  /// The [DateTime] of the last message sent.
+  DateTime lastMessageDate;
+
   /// Indicates if the [FirechatChatroom] is not yet exported to the database.
   /// Is false by default.
   ///
@@ -35,7 +38,8 @@ class FirechatChatroom {
       this.peopleRef,
       this.composingPeopleRef,
       this.focusingPeopleRef,
-      this.isLocal: false});
+      this.isLocal: false,
+      this.lastMessageDate});
 
   FirechatChatroom.fromMap(
       Map<String, dynamic> map, DocumentReference selfReference) {
@@ -48,6 +52,8 @@ class FirechatChatroom {
         map["composingPeopleRef"]?.cast<DocumentReference>() ?? null;
     this.focusingPeopleRef =
         map["focusingPeopleRef"]?.cast<DocumentReference>() ?? null;
+    this.lastMessageDate =
+        DateTime.fromMillisecondsSinceEpoch(map["lastMessageDate"]);
     this.isLocal = false;
   }
 
@@ -60,7 +66,8 @@ class FirechatChatroom {
       "chatroomTypeIndex": chatroomTypeIndex,
       "peopleRef": this.peopleRef,
       "composingPeopleRef": this.composingPeopleRef,
-      "focusingPeopleRef": this.focusingPeopleRef
+      "focusingPeopleRef": this.focusingPeopleRef,
+      "lastMessageDate": this.lastMessageDate
     };
     return map;
   }

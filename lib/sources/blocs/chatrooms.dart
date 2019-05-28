@@ -11,7 +11,7 @@ class FirechatChatrooms {
       _chatroomsController.stream;
 
   /// The last state of the [FirechatChatroom]s related to the current user.
-  List<FirechatChatroom> _chatrooms;
+  List<FirechatChatroom> _chatrooms = [];
 
   /// The [Map] of users associated with each [FirechatChatroom].
   ///
@@ -23,31 +23,90 @@ class FirechatChatrooms {
   /// The [Map] of the last messages for each [FirechatChatroom].
   Map<DocumentReference, FirechatMessage> _lastMessagesByChatroom;
 
+  /// The list of [Stream]s currently listening for the [FirechatChatroom]
+  /// instances the current user takes part to.
+  List<Stream<List<DocumentSnapshot>>> _streams = [];
+
+  /// The last list of [FirechatChatroom]s that each [Stream] has returned.
+  Map<Stream<List<DocumentSnapshot>>, List<FirechatChatroom>>
+      _listenersChatroomsList = {};
+
   FirechatChatrooms({@required this.userDocumentReference}) {
     prepare();
   }
 
   void prepare() {
-    // Gets the Stream for the Chatroom documents from Firestore and maps the
-    // result to a list of Chatroom instances, that is added to
-    // _chatroomController.
-    FirestoreChatroomInterface.chatroomsForUser(
-            userReference: userDocumentReference)
-        .listen((List<DocumentSnapshot> documents) async {
-      if (documents == null) return;
-      _chatrooms = documents.map((DocumentSnapshot snap) {
-        return FirechatChatroom.fromMap(snap.data, snap.reference);
-      }).toList();
-      await _updateUsersByChatroomMap();
-      // TODO: get the profiles and the last messages
-      _chatroomsController.add(_chatrooms);
-    });
+    _streamFirstChatrooms();
   }
 
   void dispose() async {
     await _chatroomsController.drain();
     _chatroomsController.close();
   }
+
+  //
+  // ########## PAGINATED STREAMS
+  //
+
+  /// Installs the [Stream] for the most recent [FirechatChatroom]s and the ones
+  /// that will be published after the [Stream] begins to listen.
+  ///
+  /// To request older messages, call [requestOlderChatrooms].
+  Future<void> _streamFirstChatrooms() async {
+    // Gets the Stream for the Chatroom documents from Firestore and maps the
+    // result to a list of Chatroom instances, that is added to
+    // _chatroomController.
+    Stream<List<DocumentSnapshot>> lastListener =
+        await FirestoreChatroomInterface.streamForRecentAndFutureChatroomsFor(
+            userReference: userDocumentReference);
+    if (lastListener == null) return;
+    _addListenerFor(chatroomsStream: lastListener);
+    _streams.add(lastListener);
+  }
+
+  /// Creates a new listener for the older [FirechatMessage]s documents that
+  /// are not listened to by the last instantiated listener.
+  ///
+  /// If there is no more message to listen to, the function returns without
+  /// changing any stream.
+  Future<void> requestOlderChatrooms() async {
+    Stream<List<DocumentSnapshot>> nextListener =
+        await FirestoreChatroomInterface.streamOlderChatroomsFor(
+            userReference: userDocumentReference);
+    if (nextListener == null) return;
+    _addListenerFor(chatroomsStream: nextListener);
+    _streams.add(nextListener);
+  }
+
+  /// Sets up the subscription for the given [chatroomsStream] so as to handle
+  /// the chatrooms updates.
+  void _addListenerFor(
+      {@required Stream<List<DocumentSnapshot>> chatroomsStream}) {
+    chatroomsStream.listen((List<DocumentSnapshot> snapshots) {
+      if (snapshots == null) return null;
+      List<FirechatChatroom> chatrooms = snapshots
+          .map((DocumentSnapshot snap) =>
+              FirechatChatroom.fromMap(snap.data, snap.reference))
+          .toList();
+      _listenersChatroomsList[chatroomsStream] = chatrooms;
+      _updateSinkWithChatrooms();
+    });
+  }
+
+  /// Gathers all the [FirechatChatroom] instances from all the currently active
+  /// listeners, sorts them by descending dates and feeds the
+  /// [_chatroomsController]'s sink with the complete result.
+  Future<void> _updateSinkWithChatrooms() async {
+    List<FirechatChatroom> chatroomsToSort = [];
+    _listenersChatroomsList.values.forEach((List<FirechatChatroom> chatrooms) =>
+        chatroomsToSort.addAll(chatrooms));
+    await _updateUsersByChatroomMapUsing(chatrooms: chatroomsToSort);
+    _chatroomsController.add(_orderedByDate(list: chatroomsToSort));
+  }
+
+  //
+  // ########## CONVERSATION
+  //
 
   /// Returns the [FirechatConversation] of the conversation between the current
   /// user and the contact designated by their [contactRef], that is the
@@ -77,6 +136,7 @@ class FirechatChatrooms {
     FirechatChatroom localChatroom = FirechatChatroom(
         chatroomType: FirechatChatroomType.oneToOne,
         peopleRef: [userDocumentReference, contactRef],
+        lastMessageDate: DateTime.now(),
         composingPeopleRef: [],
         focusingPeopleRef: [],
         isLocal: true);
@@ -84,21 +144,29 @@ class FirechatChatrooms {
         chatroom: localChatroom, currentUserRef: userDocumentReference);
   }
 
-  Future<void> _updateUsersByChatroomMap() async {
+  //
+  // ########## CHATROOM RELATED DATA FETCHING
+  //
+
+  Future<void> _updateUsersByChatroomMapUsing(
+      {@required List<FirechatChatroom> chatrooms}) async {
     // Removing the entries for conversations that are not in _chatrooms
     // since the previous update.
-    if (_usersByChatroom == null) return;
+    if (_usersByChatroom == null) _usersByChatroom = {};
 
     _usersByChatroom.removeWhere((DocumentReference chatroomRef, _) =>
-        !_chatrooms.any((FirechatChatroom chatroom) =>
+        !chatrooms.any((FirechatChatroom chatroom) =>
             chatroom.selfReference == chatroomRef));
 
-    // Adds the entries for conversations that were not in _chatrooms
+    // Gets the entries for conversations that were not in _chatrooms
     // on the last update.
-    List<FirechatChatroom> newInstancesSinceUpdate = _chatrooms
+    List<FirechatChatroom> newInstancesSinceUpdate = chatrooms
         .where((FirechatChatroom chatroom) =>
             !_usersByChatroom.keys.contains(chatroom.selfReference))
         .toList();
+
+    /// For each new instance, the [FirechatUser] who takes part in it is
+    /// fetched.
     await Future.forEach(newInstancesSinceUpdate,
         (FirechatChatroom chatroom) async {
       // TODO: handle how to handle this for a group conversation
@@ -115,5 +183,19 @@ class FirechatChatrooms {
         return null;
       });
     });
+  }
+
+  //
+  // ######### SORTING
+  //
+
+  /// Orders the given [list] from the chatroom updated the most recently to
+  /// the latest to be updated.
+  List<FirechatChatroom> _orderedByDate(
+      {@required List<FirechatChatroom> list}) {
+    return list
+      ..sort((c1, c2) {
+        return -c1.lastMessageDate.compareTo(c2.lastMessageDate);
+      });
   }
 }

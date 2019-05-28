@@ -28,6 +28,7 @@ class FirechatConversation {
   BehaviorSubject<List<String>> _focusingUsersController =
       BehaviorSubject<List<String>>.seeded([]);
   // TODO: add a Configuration item to set if the current user should be counted or not as a focusing user in this stream
+
   /// The [Stream] for the list of users that are currently in the chatroom.
   ///
   /// Note : this list excludes the current user by default, but it can be
@@ -114,7 +115,6 @@ class FirechatConversation {
       List<DocumentReference> peopleFocusing = _chatroom.focusingPeopleRef
           .where((DocumentReference ref) => ref != _authorRef)
           .toList();
-      print(peopleFocusing);
       _focusingUsersController.sink
           .add(List<String>.filled(peopleFocusing.length ?? 0, "People"));
     });
@@ -123,36 +123,38 @@ class FirechatConversation {
     Stream<List<DocumentSnapshot>> _lastListener =
         await FirestoreMessageInterface.streamForRecentAndFutureMessagesIn(
             chatroomReference: _chatroom.selfReference);
+
     if (_lastListener == null) return;
-    _lastListener.listen((List<DocumentSnapshot> snapshots) {
-      List<FirechatMessage> messages = snapshots
-          .map((DocumentSnapshot snap) =>
-              FirechatMessage.fromMap(snap.data, snap.reference))
-          .toList();
-      _listenersMessagesList[_lastListener] = messages;
-      _updateSinkWithMessages();
-    });
+    _addListenerFor(messagesStream: _lastListener);
     _streams.add(_lastListener);
   }
 
   /// Creates a new listener for the older [FirechatMessage]s documents that
   /// are not listened to by the last instantiated listener.
   ///
-  /// If there is no more message to listen to, the
+  /// If there is no more message to listen to, the function returns without
+  /// changing any stream.
   Future<void> requestOlderMessages() async {
     Stream<List<DocumentSnapshot>> _nextListener =
         await FirestoreMessageInterface.streamForOlderMessages(
             chatroomReference: _chatroom.selfReference);
     if (_nextListener == null) return;
-    _nextListener.listen((List<DocumentSnapshot> snapshots) {
+    _addListenerFor(messagesStream: _nextListener);
+    _streams.add(_nextListener);
+  }
+
+  /// Sets up the subscription for the given [messagesStream] so as to handle
+  /// the incomming messages.
+  void _addListenerFor(
+      {@required Stream<List<DocumentSnapshot>> messagesStream}) {
+    messagesStream.listen((List<DocumentSnapshot> snapshots) {
       List<FirechatMessage> messages = snapshots
           .map((DocumentSnapshot snap) =>
               FirechatMessage.fromMap(snap.data, snap.reference))
           .toList();
-      _listenersMessagesList[_nextListener] = messages;
+      _listenersMessagesList[messagesStream] = messages;
       _updateSinkWithMessages();
     });
-    _streams.add(_nextListener);
   }
 
   /// Gathers all the [FirechatMessage] instances from all the currently active
@@ -162,8 +164,7 @@ class FirechatConversation {
     List<FirechatMessage> messagesToSort = [];
     _listenersMessagesList.values.forEach(
         (List<FirechatMessage> messages) => messagesToSort.addAll(messages));
-    _messagesController
-        .add(_orderedByDate(list: _orderedByDate(list: messagesToSort)));
+    _messagesController.add(_orderedByDate(list: messagesToSort));
   }
 
   //
@@ -247,6 +248,8 @@ class FirechatConversation {
         date: DateTime.now());
 
     await FirestoreMessageInterface.send(messageToSend);
+    await FirestoreChatroomInterface.updateLastMessageDateFor(
+        chatroom: _chatroom, date: messageToSend.date);
   }
 
   /// Deletes the given [message].
