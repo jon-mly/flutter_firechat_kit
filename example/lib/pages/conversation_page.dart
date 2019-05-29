@@ -256,38 +256,44 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
   }
 
   Widget _messagesListAndTypingInfos() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Expanded(
-          child: _messagesList(),
-        ),
-        // TODO: refactor this indicator
-        StreamBuilder(
-          stream: _conversation.onFocusingUsersUpdate,
-          builder: (BuildContext context, AsyncSnapshot<List<String>> snap) {
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: (snap.hasData)
-                  ? Text("${snap.data.length} people active")
-                  : Container(),
-            );
-          },
-        ),
-        // TODO: refactor this indicator
-        StreamBuilder(
-          stream: _conversation.onComposingUsersUpdate,
-          builder: (BuildContext context, AsyncSnapshot<List<String>> snap) {
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: (snap.hasData && snap.data.isNotEmpty)
-                  ? Text("Someone is typing...")
-                  : Container(),
-            );
-          },
-        )
-      ],
-    );
+    return StreamBuilder<Object>(
+        stream: _conversation.onChatroomUpdate,
+        builder: (context, snapshot) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Expanded(
+                child: _messagesList(),
+              ),
+              // TODO: refactor this indicator
+              StreamBuilder(
+                stream: _conversation.onFocusingUsersUpdate,
+                builder:
+                    (BuildContext context, AsyncSnapshot<List<String>> snap) {
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: (snap.hasData)
+                        ? Text("${snap.data.length} people active")
+                        : Container(),
+                  );
+                },
+              ),
+              // TODO: refactor this indicator
+              StreamBuilder(
+                stream: _conversation.onComposingUsersUpdate,
+                builder:
+                    (BuildContext context, AsyncSnapshot<List<String>> snap) {
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: (snap.hasData && snap.data.isNotEmpty)
+                        ? Text("Someone is typing...")
+                        : Container(),
+                  );
+                },
+              )
+            ],
+          );
+        });
   }
 
   Widget _messageListInGestureWrapper() {

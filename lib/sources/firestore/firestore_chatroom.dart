@@ -329,8 +329,12 @@ class FirestoreChatroomInterface {
 
     chatroom.lastMessagesRead[userRef] = message.selfReference;
 
+    print(chatroom.entryReadBy(
+        userRef: userRef, messageRef: message.selfReference));
+
     await Firestore.instance
-        .runTransaction((_) => chatroom.selfReference.setData(chatroom.toMap()))
+        .runTransaction((_) => chatroom.selfReference.updateData(chatroom
+            .entryReadBy(userRef: userRef, messageRef: message.selfReference)))
         .catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
