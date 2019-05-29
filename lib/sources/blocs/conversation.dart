@@ -175,13 +175,11 @@ class FirechatConversation {
         _orderedByDate(list: messagesToSort);
 
     _mostRecentMessage = orderedMessages.first;
-    print(_mostRecentMessage.toMap());
-
-    // TODO: add a condition that checks the configuration
-    print("Here");
-    await _markMessagesAsReadIfFocusing();
 
     _messagesController.add(orderedMessages);
+
+    // TODO: add a condition that checks the configuration
+    await _markMessagesAsReadIfFocusing();
   }
 
   //
