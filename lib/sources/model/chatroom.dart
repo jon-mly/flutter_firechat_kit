@@ -11,6 +11,7 @@ class FirechatChatroomKeys {
   static final String kLastMessageDate = "lastMessageDate";
   static final String kLastMessagesRead = "lastMessagesRead";
   static final String kReadByPrefix = "readBy_";
+  static final String kDetails = "details";
 }
 
 class FirechatChatroom {
@@ -40,6 +41,12 @@ class FirechatChatroom {
   /// of their related document in Firestore.
   Map<DocumentReference, DocumentReference> lastMessagesRead;
 
+  /// [Map] for custom details than can de added to the [FirechatChatroom].
+  ///
+  /// These optional data are not handled by Firechat and is provided so you can
+  /// link custom data to the chatroom directly in Firestore.
+  Map<String, dynamic> details;
+
   /// Indicates if the [FirechatChatroom] is not yet exported to the database.
   /// Is false by default.
   ///
@@ -56,6 +63,7 @@ class FirechatChatroom {
       this.focusingPeopleRef,
       this.isLocal: false,
       this.lastMessageDate,
+      this.details,
       this.lastMessagesRead});
 
   FirechatChatroom.fromMap(
@@ -76,15 +84,7 @@ class FirechatChatroom {
     this.lastMessageDate = DateTime.fromMillisecondsSinceEpoch(
         map[FirechatChatroomKeys.kLastMessageDate]);
     this.isLocal = false;
-
-//    Map<String, DocumentReference> lastMessagesPerUser =
-//        Map<String, DocumentReference>.from(
-//            map[FirechatChatroomKeys.kLastMessagesRead] ?? {});
-//    if (lastMessagesPerUser != null) {
-//      this.lastMessagesRead = lastMessagesPerUser
-//          .map((String userDocRefStr, DocumentReference messageRef) {
-//        return MapEntry(Firestore.instance.document(userDocRefStr), messageRef);
-//      });
+    this.details = map[FirechatChatroomKeys.kDetails];
 
     Map<String, DocumentReference> readByMap = {};
     map.forEach((String key, dynamic content) {
@@ -112,9 +112,7 @@ class FirechatChatroom {
       FirechatChatroomKeys.kFocusingPeopleRef: this.focusingPeopleRef,
       FirechatChatroomKeys.kLastMessageDate:
           this.lastMessageDate.millisecondsSinceEpoch,
-//      FirechatChatroomKeys.kLastMessagesRead: this.lastMessagesRead.map(
-//          (DocumentReference userRef, DocumentReference messageRef) =>
-//              MapEntry(userRef.path, messageRef))
+      FirechatChatroomKeys.kDetails: this.details
     };
 
     Map<String, DocumentReference> readByMap = lastMessagesRead

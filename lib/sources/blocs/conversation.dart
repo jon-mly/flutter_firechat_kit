@@ -351,6 +351,24 @@ class FirechatConversation {
   }
 
   //
+  // ########## CHATROOM DETAILS
+  //
+
+  /// Sets the given [map] to [_chatroom.details] and uploads the field to
+  /// Firestore.
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  Future<void> setChatroomDetails({@required Map<String, dynamic> map}) async {
+    _chatroom.details = map;
+
+    await FirestoreChatroomInterface.updateChatroomDetails(chatroom: _chatroom)
+        .catchError((e) {
+      if (e is FirechatError) throw e;
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
+
+  //
   // ########## SORTING
   //
 
