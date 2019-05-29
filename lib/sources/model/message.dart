@@ -2,6 +2,15 @@ part of firechat_kit;
 
 enum FirechatMessageAssetType { image, gif, video, audio }
 
+class FirechatMessageKeys {
+  static final String kAuthorRef = "authorRef";
+  static final String kDate = "dateTimestamp";
+  static final String kContent = "content";
+  static final String kAssetUrl = "assetUrl";
+  static final String kAssetType = "assetType";
+  static final String kChatroomRef = "chatroomRef";
+}
+
 /// A message sent by a user.
 class FirechatMessage {
   /// Firestore [DocumentReference] of the [FirechatUser] author of the message.
@@ -41,25 +50,27 @@ class FirechatMessage {
   FirechatMessage.fromMap(
       Map<String, dynamic> map, DocumentReference selfReference) {
     this.selfReference = selfReference;
-    this.authorRef = map["authorRef"];
-    this.content = map["content"];
-    this.chatroomRef = map["chatroomRef"];
-    this.assetUrl = map["assetUrl"];
-    if (map["assetType"] != null)
-      this.assetType = FirechatMessageAssetType.values[map["assetType"]];
-    if (map["dateTimestamp"] != null)
-      this.date = DateTime.fromMillisecondsSinceEpoch(map["dateTimestamp"]);
+    this.authorRef = map[FirechatMessageKeys.kAuthorRef];
+    this.content = map[FirechatMessageKeys.kContent];
+    this.chatroomRef = map[FirechatMessageKeys.kChatroomRef];
+    this.assetUrl = map[FirechatMessageKeys.kAssetUrl];
+    if (map[FirechatMessageKeys.kAssetType] != null)
+      this.assetType =
+          FirechatMessageAssetType.values[map[FirechatMessageKeys.kAssetType]];
+    if (map[FirechatMessageKeys.kDate] != null)
+      this.date =
+          DateTime.fromMillisecondsSinceEpoch(map[FirechatMessageKeys.kDate]);
   }
 
   Map<String, dynamic> toMap() {
     Map<String, dynamic> map = {
-      "authorRef": this.authorRef,
-      "dateTimestamp":
+      FirechatMessageKeys.kAuthorRef: this.authorRef,
+      FirechatMessageKeys.kDate:
           (this.date != null) ? this.date.millisecondsSinceEpoch : null,
-      "chatroomRef": this.chatroomRef,
-      "content": this.content,
-      "assetUrl": this.assetUrl,
-      "assetType": (this.assetType != null)
+      FirechatMessageKeys.kChatroomRef: this.chatroomRef,
+      FirechatMessageKeys.kContent: this.content,
+      FirechatMessageKeys.kAssetUrl: this.assetUrl,
+      FirechatMessageKeys.kAssetType: (this.assetType != null)
           ? FirechatMessageAssetType.values.indexOf(assetType)
           : null
     };

@@ -1,5 +1,12 @@
 part of firechat_kit;
 
+class FirechatUserKeys {
+  static final String kUserId = "userId";
+  static final String kFirebaseUserId = "accountId";
+  static final String kAvatarUrl = "avatarUrl";
+  static final String kDisplayName = "displayName";
+}
+
 class FirechatUser {
   /// The ID of the used in your database to which this instance will be
   /// bound.
@@ -37,19 +44,18 @@ class FirechatUser {
 
   FirechatUser.fromMap(Map<String, dynamic> map, DocumentReference reference) {
     this.selfReference = reference;
-    this.userId = map["userId"];
-    this.firebaseUserId = map["accountId"];
-    this.avatarUrl = map["avatarUrl"];
-    this.displayName = map["displayName"];
+    this.userId = map[FirechatUserKeys.kUserId];
+    this.firebaseUserId = map[FirechatUserKeys.kFirebaseUserId];
+    this.avatarUrl = map[FirechatUserKeys.kAvatarUrl];
+    this.displayName = map[FirechatUserKeys.kDisplayName];
   }
 
   Map<String, dynamic> toMap() {
     Map<String, dynamic> map = {
-      "avatarUrl": this.avatarUrl,
-      "userId": this.userId,
-      "accountId": this.firebaseUserId,
-      "avatarUrl": this.avatarUrl,
-      "displayName": this.displayName
+      FirechatUserKeys.kAvatarUrl: this.avatarUrl,
+      FirechatUserKeys.kUserId: this.userId,
+      FirechatUserKeys.kFirebaseUserId: this.firebaseUserId,
+      FirechatUserKeys.kDisplayName: this.displayName
     };
     return map;
   }

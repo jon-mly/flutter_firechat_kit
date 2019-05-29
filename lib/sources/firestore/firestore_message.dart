@@ -31,7 +31,7 @@ class FirestoreMessageInterface {
     // get the last message of this query.
     return await chatroomReference
         .collection(_messagesCollectionName)
-        .orderBy("dateTimestamp", descending: true)
+        .orderBy(FirechatMessageKeys.kDate, descending: true)
         .limit(minimumSize)
         .getDocuments()
         .then((QuerySnapshot snap) => snap.documents)
@@ -49,8 +49,8 @@ class FirestoreMessageInterface {
       // listen for the next ones to come since it has no size limit.
       Stream<List<DocumentSnapshot>> stream = chatroomReference
           .collection(_messagesCollectionName)
-          .orderBy("dateTimestamp", descending: true)
-          .endAt([nextStartBound.data["dateTimestamp"]])
+          .orderBy(FirechatMessageKeys.kDate, descending: true)
+          .endAt([nextStartBound.data[FirechatMessageKeys.kDate]])
           .snapshots()
           .map((QuerySnapshot query) => query.documents);
       // If the count of documents is lower than the size limit, this
@@ -93,8 +93,8 @@ class FirestoreMessageInterface {
     // first perform a first simple query to get the last message of this query.
     return await chatroomReference
         .collection(_messagesCollectionName)
-        .orderBy("dateTimestamp", descending: true)
-        .startAt([nextStartBound.data["dateTimestamp"]])
+        .orderBy(FirechatMessageKeys.kDate, descending: true)
+        .startAt([nextStartBound.data[FirechatMessageKeys.kDate]])
         .limit(sizeLimit)
         .getDocuments()
         .then((QuerySnapshot snap) => snap.documents)
@@ -108,9 +108,9 @@ class FirestoreMessageInterface {
           // older than the one identified as [nextStartBound].
           Stream<List<DocumentSnapshot>> stream = chatroomReference
               .collection(_messagesCollectionName)
-              .orderBy("dateTimestamp", descending: true)
-              .startAfter([nextStartBound.data["dateTimestamp"]])
-              .endAt([end.data["dateTimestamp"]])
+              .orderBy(FirechatMessageKeys.kDate, descending: true)
+              .startAfter([nextStartBound.data[FirechatMessageKeys.kDate]])
+              .endAt([end.data[FirechatMessageKeys.kDate]])
               .snapshots()
               .map((QuerySnapshot query) => query.documents);
           // If the count of documents is lower than the size limit, this

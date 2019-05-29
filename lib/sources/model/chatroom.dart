@@ -2,6 +2,16 @@ part of firechat_kit;
 
 enum FirechatChatroomType { group, oneToOne }
 
+class FirechatChatroomKeys {
+  static final String kTitle = "title";
+  static final String kChatroomTypeIndex = "chatroomTypeIndex";
+  static final String kPeopleRef = "peopleRef";
+  static final String kComposingPeopleRef = "composingPeopleRef";
+  static final String kFocusingPeopleRef = "focusingPeopleRef";
+  static final String kLastMessageDate = "lastMessageDate";
+  static final String kLastMessagesRead = "lastMessagesRead";
+}
+
 class FirechatChatroom {
   /// The title of the [FirechatChatroom].
   String title;
@@ -24,6 +34,11 @@ class FirechatChatroom {
   /// The [DateTime] of the last message sent.
   DateTime lastMessageDate;
 
+  /// The [Map] for the [DocumentReference] of the last [FirechatMessage] read
+  /// by each of the [FirechatUser], identified by the [DocumentReference]
+  /// of their related document in Firestore.
+  Map<DocumentReference, DocumentReference> lastMessagesRead;
+
   /// Indicates if the [FirechatChatroom] is not yet exported to the database.
   /// Is false by default.
   ///
@@ -39,21 +54,27 @@ class FirechatChatroom {
       this.composingPeopleRef,
       this.focusingPeopleRef,
       this.isLocal: false,
-      this.lastMessageDate});
+      this.lastMessageDate,
+      this.lastMessagesRead});
 
   FirechatChatroom.fromMap(
       Map<String, dynamic> map, DocumentReference selfReference) {
     this.selfReference = selfReference;
-    this.title = map["title"];
-    if (map["chatroomTypeIndex"] != null)
-      this.chatroomType = FirechatChatroomType.values[map["chatroomTypeIndex"]];
-    this.peopleRef = map["peopleRef"]?.cast<DocumentReference>() ?? null;
-    this.composingPeopleRef =
-        map["composingPeopleRef"]?.cast<DocumentReference>() ?? null;
-    this.focusingPeopleRef =
-        map["focusingPeopleRef"]?.cast<DocumentReference>() ?? null;
-    this.lastMessageDate =
-        DateTime.fromMillisecondsSinceEpoch(map["lastMessageDate"]);
+    this.title = map[FirechatChatroomKeys.kTitle];
+    if (map[FirechatChatroomKeys.kChatroomTypeIndex] != null)
+      this.chatroomType = FirechatChatroomType
+          .values[map[FirechatChatroomKeys.kChatroomTypeIndex]];
+    this.peopleRef =
+        map[FirechatChatroomKeys.kPeopleRef]?.cast<DocumentReference>() ?? null;
+    this.composingPeopleRef = map[FirechatChatroomKeys.kComposingPeopleRef]
+            ?.cast<DocumentReference>() ??
+        null;
+    this.focusingPeopleRef = map[FirechatChatroomKeys.kFocusingPeopleRef]
+            ?.cast<DocumentReference>() ??
+        null;
+    this.lastMessageDate = DateTime.fromMillisecondsSinceEpoch(
+        map[FirechatChatroomKeys.kLastMessageDate]);
+    this.lastMessagesRead = map[FirechatChatroomKeys.kLastMessagesRead];
     this.isLocal = false;
   }
 
@@ -62,12 +83,12 @@ class FirechatChatroom {
         ? FirechatChatroomType.values.indexOf(this.chatroomType)
         : null;
     Map<String, dynamic> map = {
-      "title": this.title,
-      "chatroomTypeIndex": chatroomTypeIndex,
-      "peopleRef": this.peopleRef,
-      "composingPeopleRef": this.composingPeopleRef,
-      "focusingPeopleRef": this.focusingPeopleRef,
-      "lastMessageDate": this.lastMessageDate
+      FirechatChatroomKeys.kTitle: this.title,
+      FirechatChatroomKeys.kChatroomTypeIndex: chatroomTypeIndex,
+      FirechatChatroomKeys.kPeopleRef: this.peopleRef,
+      FirechatChatroomKeys.kComposingPeopleRef: this.composingPeopleRef,
+      FirechatChatroomKeys.kFocusingPeopleRef: this.focusingPeopleRef,
+      FirechatChatroomKeys.kLastMessageDate: this.lastMessageDate
     };
     return map;
   }

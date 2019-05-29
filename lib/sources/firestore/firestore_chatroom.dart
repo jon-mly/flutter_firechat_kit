@@ -29,8 +29,8 @@ class FirestoreChatroomInterface {
     // get the last message of this query.
     return await Firestore.instance
         .collection(_chatroomsCollectionName)
-        .orderBy("lastMessageDate", descending: true)
-        .where("peopleRef", arrayContains: userReference)
+        .orderBy(FirechatChatroomKeys.kLastMessageDate, descending: true)
+        .where(FirechatChatroomKeys.kPeopleRef, arrayContains: userReference)
         .limit(minimumSize)
         .getDocuments()
         .then((QuerySnapshot snap) => snap.documents)
@@ -49,9 +49,10 @@ class FirestoreChatroomInterface {
         // listen for the next ones to be updated since it has no size limit.
         stream = Firestore.instance
             .collection(_chatroomsCollectionName)
-            .orderBy("lastMessageDate", descending: true)
-            .where("peopleRef", arrayContains: userReference)
-            .endAt([nextStartBound.data["lastMessageDate"]])
+            .orderBy(FirechatChatroomKeys.kLastMessageDate, descending: true)
+            .where(FirechatChatroomKeys.kPeopleRef,
+                arrayContains: userReference)
+            .endAt([nextStartBound.data[FirechatChatroomKeys.kLastMessageDate]])
             .snapshots()
             .map((QuerySnapshot query) => query.documents);
       } else {
@@ -60,8 +61,9 @@ class FirestoreChatroomInterface {
         // size limit.
         stream = Firestore.instance
             .collection(_chatroomsCollectionName)
-            .orderBy("lastMessageDate", descending: true)
-            .where("peopleRef", arrayContains: userReference)
+            .orderBy(FirechatChatroomKeys.kLastMessageDate, descending: true)
+            .where(FirechatChatroomKeys.kPeopleRef,
+                arrayContains: userReference)
             .snapshots()
             .map((QuerySnapshot query) => query.documents);
       }
@@ -98,9 +100,9 @@ class FirestoreChatroomInterface {
     // get the last message of this query.
     return await Firestore.instance
         .collection(_chatroomsCollectionName)
-        .orderBy("lastMessageDate", descending: true)
-        .where("peopleRef", arrayContains: userReference)
-        .startAt([nextStartBound.data["lastMessageDate"]])
+        .orderBy(FirechatChatroomKeys.kLastMessageDate, descending: true)
+        .where(FirechatChatroomKeys.kPeopleRef, arrayContains: userReference)
+        .startAt([nextStartBound.data[FirechatChatroomKeys.kLastMessageDate]])
         .limit(sizeLimit)
         .getDocuments()
         .then((QuerySnapshot snap) => snap.documents)
@@ -114,10 +116,12 @@ class FirestoreChatroomInterface {
           // older than the one identified as [nextStartBound].
           Stream<List<DocumentSnapshot>> stream = Firestore.instance
               .collection(_chatroomsCollectionName)
-              .orderBy("lastMessageDate", descending: true)
-              .where("peopleRef", arrayContains: userReference)
-              .startAfter([end.data["lastMessageDate"]])
-              .endAt([nextStartBound.data["lastMessageDate"]])
+              .orderBy(FirechatChatroomKeys.kLastMessageDate, descending: true)
+              .where(FirechatChatroomKeys.kPeopleRef,
+                  arrayContains: userReference)
+              .startAfter([end.data[FirechatChatroomKeys.kLastMessageDate]])
+              .endAt(
+                  [nextStartBound.data[FirechatChatroomKeys.kLastMessageDate]])
               .snapshots()
               .map((QuerySnapshot query) => query.documents);
           // If the count of documents is lower than the size limit, this
@@ -160,9 +164,9 @@ class FirestoreChatroomInterface {
     // TODO: make the path to be flexible / configured.
     List<FirechatChatroom> candidates = await Firestore.instance
         .collection(_chatroomsCollectionName)
-        .where("chatroomTypeIndex",
+        .where(FirechatChatroomKeys.kChatroomTypeIndex,
             isEqualTo: FirechatChatroomType.oneToOne.index)
-        .where("peopleRef", arrayContains: firstUserRef)
+        .where(FirechatChatroomKeys.kPeopleRef, arrayContains: firstUserRef)
         .getDocuments()
         .then((QuerySnapshot snap) => snap.documents
             .map((DocumentSnapshot snap) =>
@@ -233,8 +237,10 @@ class FirestoreChatroomInterface {
             ..remove(userReference);
 
     await Firestore.instance
-        .runTransaction((_) => chatroom.selfReference
-            .updateData({"composingPeopleRef": chatroom.composingPeopleRef}))
+        .runTransaction((_) => chatroom.selfReference.updateData({
+              FirechatChatroomKeys.kComposingPeopleRef:
+                  chatroom.composingPeopleRef
+            }))
         .catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
@@ -267,8 +273,10 @@ class FirestoreChatroomInterface {
             ..remove(userReference);
 
     await Firestore.instance
-        .runTransaction((_) => chatroom.selfReference
-            .updateData({"focusingPeopleRef": chatroom.focusingPeopleRef}))
+        .runTransaction((_) => chatroom.selfReference.updateData({
+              FirechatChatroomKeys.kFocusingPeopleRef:
+                  chatroom.focusingPeopleRef
+            }))
         .catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
@@ -288,7 +296,7 @@ class FirestoreChatroomInterface {
     if (chatroom.selfReference == null)
       throw FirechatError.kNullDocumentReferenceError;
 
-    Firestore.instance.runTransaction((_) => chatroom.selfReference
-        .setData({"lastMessageDate": date.millisecondsSinceEpoch}));
+    Firestore.instance.runTransaction((_) => chatroom.selfReference.setData(
+        {FirechatChatroomKeys.kLastMessageDate: date.millisecondsSinceEpoch}));
   }
 }

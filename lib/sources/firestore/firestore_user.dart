@@ -54,7 +54,7 @@ class FirestoreUserInterface {
     // TODO: make the path to be flexible / configured.
     return await Firestore.instance
         .collection(_usersCollectionName)
-        .where("userId", isEqualTo: userId)
+        .where(FirechatUserKeys.kUserId, isEqualTo: userId)
         .getDocuments()
         .then((QuerySnapshot snap) {
       if (snap.documents.isEmpty) return null;
