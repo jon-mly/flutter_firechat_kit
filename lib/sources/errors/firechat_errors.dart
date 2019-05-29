@@ -20,6 +20,9 @@ class FirechatError extends Error {
       "An error has occured while Firestore were trying to filter and get Chatroom documents");
   static final FirechatError kFirestoreChatroomUploadError = FirechatError(
       "An error has occured while Firestore were trying to upload a Chatroom document.");
+  static final FirechatError kFirestoreChatroomLastMessageUpdaterror =
+      FirechatError(
+          "An error has occured while Firestore were trying to update the last message read by a user in a Chatroom document.");
   static final FirechatError kCouldNotRetrieveUserDataError = FirechatError(
       "An error has occured while Firechat Kit tried to retrieve the FirechatUser instance.");
   static final FirechatError kChatroomQueryError = FirechatError(

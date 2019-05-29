@@ -139,6 +139,7 @@ class FirechatChatrooms {
         lastMessageDate: DateTime.now(),
         composingPeopleRef: [],
         focusingPeopleRef: [],
+        lastMessagesRead: {userDocumentReference: null, contactRef: null},
         isLocal: true);
     return FirechatConversation.local(
         chatroom: localChatroom, currentUserRef: userDocumentReference);
