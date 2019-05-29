@@ -296,7 +296,44 @@ class FirestoreChatroomInterface {
     if (chatroom.selfReference == null)
       throw FirechatError.kNullDocumentReferenceError;
 
-    Firestore.instance.runTransaction((_) => chatroom.selfReference.setData(
-        {FirechatChatroomKeys.kLastMessageDate: date.millisecondsSinceEpoch}));
+    await Firestore.instance
+        .runTransaction((_) => chatroom.selfReference.updateData({
+              FirechatChatroomKeys.kLastMessageDate: date.millisecondsSinceEpoch
+            }))
+        .catchError((e) {
+      print(e);
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
+
+  //
+  // ######## LAST MESSAGE READ FOR EACH USER
+  //
+
+  /// Updates the [chatroom.lastMessagesRead] entry for the given user related
+  /// to the given [userRef] to reflect that the last message they read is
+  /// the given [message].
+  ///
+  /// The modified [chatroom] is then uploaded to Firestore.
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  static Future<void> setLastReadMessageForUser(
+      {@required DocumentReference userRef,
+      @required FirechatChatroom chatroom,
+      @required FirechatMessage message}) async {
+    if (userRef == null) throw FirechatError.kNullDocumentReferenceError;
+    if (message.selfReference == null)
+      throw FirechatError.kNullDocumentReferenceError;
+    if (chatroom.selfReference == null)
+      throw FirechatError.kNullDocumentReferenceError;
+
+    chatroom.lastMessagesRead[userRef] = message.selfReference;
+
+    await Firestore.instance
+        .runTransaction((_) => chatroom.selfReference.setData(chatroom.toMap()))
+        .catchError((e) {
+      print(e);
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
   }
 }

@@ -74,8 +74,17 @@ class FirechatChatroom {
         null;
     this.lastMessageDate = DateTime.fromMillisecondsSinceEpoch(
         map[FirechatChatroomKeys.kLastMessageDate]);
-    this.lastMessagesRead = map[FirechatChatroomKeys.kLastMessagesRead];
     this.isLocal = false;
+
+    Map<String, DocumentReference> lastMessagesPerUser =
+        Map<String, DocumentReference>.from(
+            map[FirechatChatroomKeys.kLastMessagesRead] ?? {});
+    if (lastMessagesPerUser != null) {
+      this.lastMessagesRead = lastMessagesPerUser
+          .map((String userDocRefStr, DocumentReference messageRef) {
+        return MapEntry(Firestore.instance.document(userDocRefStr), messageRef);
+      });
+    }
   }
 
   Map<String, dynamic> toMap() {
@@ -88,7 +97,11 @@ class FirechatChatroom {
       FirechatChatroomKeys.kPeopleRef: this.peopleRef,
       FirechatChatroomKeys.kComposingPeopleRef: this.composingPeopleRef,
       FirechatChatroomKeys.kFocusingPeopleRef: this.focusingPeopleRef,
-      FirechatChatroomKeys.kLastMessageDate: this.lastMessageDate
+      FirechatChatroomKeys.kLastMessageDate:
+          this.lastMessageDate.millisecondsSinceEpoch,
+      FirechatChatroomKeys.kLastMessagesRead: this.lastMessagesRead.map(
+          (DocumentReference userRef, DocumentReference messageRef) =>
+              MapEntry(userRef.path, messageRef))
     };
     return map;
   }

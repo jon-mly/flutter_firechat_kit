@@ -14,6 +14,8 @@ class FirechatConversation {
   Observable<List<FirechatMessage>> get onMessagesUpdate =>
       _messagesController.stream;
 
+  FirechatMessage _mostRecentMessage;
+
   // TODO: replace with FirechatUser
   BehaviorSubject<List<String>> _composingUsersController =
       BehaviorSubject<List<String>>.seeded([]);
@@ -44,6 +46,8 @@ class FirechatConversation {
   /// has returned.
   Map<Stream<List<DocumentSnapshot>>, List<FirechatMessage>>
       _listenersMessagesList = {};
+  List<FirechatMessage> get _allStreamedMessages =>
+      _listenersMessagesList.values.expand((x) => x).toList();
 
   //
   // ########### CONSTRUCTORS
@@ -160,11 +164,24 @@ class FirechatConversation {
   /// Gathers all the [FirechatMessage] instances from all the currently active
   /// listeners, sorts them by descending dates and feeds the
   /// [_messagesController]'s sink with the complete result.
-  void _updateSinkWithMessages() {
+  ///
+  /// Also call [_markMessagesAsReadIfFocusing] if the automation process has
+  /// been configured.
+  Future<void> _updateSinkWithMessages() async {
     List<FirechatMessage> messagesToSort = [];
     _listenersMessagesList.values.forEach(
         (List<FirechatMessage> messages) => messagesToSort.addAll(messages));
-    _messagesController.add(_orderedByDate(list: messagesToSort));
+    List<FirechatMessage> orderedMessages =
+        _orderedByDate(list: messagesToSort);
+
+    _mostRecentMessage = orderedMessages.first;
+    print(_mostRecentMessage.toMap());
+
+    // TODO: add a condition that checks the configuration
+    print("Here");
+    await _markMessagesAsReadIfFocusing();
+
+    _messagesController.add(orderedMessages);
   }
 
   //
@@ -262,6 +279,23 @@ class FirechatConversation {
     });
   }
 
+  /// Updates the [FirechatChatroom.lastMessagesRead] to indicate that the last
+  /// message the current user has read is the most recent, thus indicating
+  /// that all the previous messages are read as well.
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  Future<void> currentUserReadAllMessages() async {
+    if (_mostRecentMessage == null) return;
+    FirestoreChatroomInterface.setLastReadMessageForUser(
+            userRef: _authorRef,
+            chatroom: _chatroom,
+            message: _mostRecentMessage)
+        .catchError((e) {
+      if (e is FirechatError) throw e;
+      throw FirechatError.kFirestoreChatroomLastMessageUpdaterror;
+    });
+  }
+
   /// Exports the [FirechatChatroom] to Firestore.
   ///
   /// This allows to then set up the [Stream]s and to follow the updates related
@@ -276,6 +310,46 @@ class FirechatConversation {
       throw FirechatError.kFirestoreChatroomUploadError;
     });
     _streamChatroomAndFirstMessages();
+  }
+
+  //
+  // ########## READ RECEIPT AUTOMATION
+  //
+
+  /// If the current user is currently focusing the conversation, the messages
+  /// will be marked as read.
+  Future<void> _markMessagesAsReadIfFocusing() async {
+    if (!_chatroom.focusingPeopleRef.contains(_authorRef)) return;
+
+    await currentUserReadAllMessages();
+  }
+
+  //
+  // ########## HELPERS
+  //
+
+  /// Indicates if the given [message] has been read by at least someone other
+  /// than the author.
+  ///
+  /// [message] is expected to be one of the currently streamed messages, so as
+  /// to if the last seen messages of the other members of the chatrooms cannot
+  /// be found among the streamed ones, it will be considered anterior.
+  bool messageIsReadByOthers(FirechatMessage message) {
+    List<DocumentReference> lastSeenMessageRefForOthers = _chatroom
+        .lastMessagesRead.keys
+        .where((DocumentReference ref) => ref != _authorRef)
+        .map((DocumentReference otherUserRef) =>
+            _chatroom.lastMessagesRead[otherUserRef])
+        .toList();
+    List<FirechatMessage> lastSeenMessages = lastSeenMessageRefForOthers
+        .map((DocumentReference msgRef) => _allStreamedMessages.firstWhere(
+            (FirechatMessage candidate) => candidate.selfReference == msgRef,
+            orElse: () => null))
+        .where((item) => item != null)
+        .toList();
+    return lastSeenMessages.any((FirechatMessage candidate) =>
+        candidate.date.isAfter(message.date) ||
+        candidate.selfReference == message.selfReference);
   }
 
   //

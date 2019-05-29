@@ -201,11 +201,25 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
             FirechatMessage message = messages[index];
             bool sentByCurrentUser =
                 FirechatKit.instance.authorIsCurrentUserFor(message: message);
+            bool seen = _conversation.messageIsReadByOthers(message);
             Widget tile = ListTile(
               title: Text(
                 message.content,
                 textAlign: sentByCurrentUser ? TextAlign.end : TextAlign.start,
               ),
+              trailing: sentByCurrentUser
+                  ? SizedBox(
+                      child: seen
+                          ? Container(
+                              color: Colors.blue,
+                            )
+                          : Container(
+                              color: Colors.grey,
+                            ),
+                      height: 20.0,
+                      width: 20.0,
+                    )
+                  : null,
               subtitle: sentByCurrentUser
                   ? Text(
                       "Me",
