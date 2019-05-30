@@ -211,6 +211,25 @@ class FirestoreChatroomInterface {
     return chatroom;
   }
 
+  /// Uploads the [chatroom.details] to Firestore.
+  ///
+  /// This required [chatroom.details] to be set.
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  static Future<void> updateChatroomDetails(
+      {@required FirechatChatroom chatroom}) async {
+    if (chatroom.selfReference == null)
+      throw FirechatError.kNullDocumentReferenceError;
+
+    await Firestore.instance
+        .runTransaction((_) => chatroom.selfReference
+            .updateData({FirechatChatroomKeys.kDetails: chatroom.details}))
+        .catchError((e) {
+      print(e);
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
+
   //
   // ########## COMPOSING
   //
