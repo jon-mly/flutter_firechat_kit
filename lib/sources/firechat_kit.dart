@@ -12,6 +12,9 @@ class FirechatKit {
 
   bool _isConfigured = false;
 
+  FirechatKitConfiguration _configuration;
+  FirechatKitConfiguration get configuration => _configuration;
+
   FirechatCurrentUser _currentUser;
   FirechatCurrentUser get currentUser => _currentUser;
 
@@ -24,7 +27,11 @@ class FirechatKit {
   /// Configures [FirechatKit] to conforms to your configuration.
   ///
   /// This should be called when the app is launched.
-  void configure() {
+  void configure({FirechatKitConfiguration configuration}) {
+    if (configuration == null)
+      _configuration = FirechatKitConfiguration.defaultConfiguration();
+    else
+      _configuration = configuration;
     _isConfigured = true;
   }
 
@@ -59,10 +66,9 @@ class FirechatKit {
     if (firebaseUserId == null) throw FirechatError.kLoggingInError;
 
     // Get the DocumentSnapshot of the Current user
-    DocumentSnapshot currentUserSnap =
-        await FirestoreUserInterface.userDocumentSnapshotByUserId(
-                userId: userId)
-            .catchError((e) {
+    DocumentSnapshot currentUserSnap = await FirestoreUserInterface()
+        .userDocumentSnapshotByUserId(userId: userId)
+        .catchError((e) {
       if (e is FirechatError) throw e;
       throw FirechatError.kFirestoreUserFetchError;
     });
@@ -71,7 +77,8 @@ class FirechatKit {
     // instruction has not returned any result.
     FirechatUser user;
     if (currentUserSnap == null) {
-      user = await FirestoreUserInterface.uploadFirechatUser(
+      user = await FirestoreUserInterface()
+          .uploadFirechatUser(
               FirechatUser(userId: userId, firebaseUserId: firebaseUserId))
           .catchError((e) {
         if (e is FirechatError) throw e;
@@ -79,7 +86,7 @@ class FirechatKit {
       });
     } else
       // Otherwise, the firebaseUserId is updated to Firestore.
-      user = await FirestoreUserInterface.updateFirebaseIdOf(
+      user = await FirestoreUserInterface().updateFirebaseIdOf(
           FirechatUser.fromMap(currentUserSnap.data, currentUserSnap.reference),
           firebaseUserId);
 
@@ -170,8 +177,8 @@ class FirechatKit {
   Future<FirechatConversation> getConversationWithUser(
       {@required String id}) async {
     if (id == null) throw FirechatError.kNullUserId;
-    DocumentReference contactRef =
-        await FirestoreUserInterface.userDocumentReferenceByUserId(userId: id);
+    DocumentReference contactRef = await FirestoreUserInterface()
+        .userDocumentReferenceByUserId(userId: id);
     if (contactRef == null) throw FirechatError.kNoUserFoundFromId;
     // Otherwise, the data are gathered to build the conversation.
     _focusedConversation =

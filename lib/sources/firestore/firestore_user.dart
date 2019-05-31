@@ -3,6 +3,9 @@ part of firechat_kit;
 class FirestoreUserInterface {
   static final String _usersCollectionName = "users";
 
+  String get _usersPath =>
+      FirechatKit.instance.configuration.basePath + _usersCollectionName;
+
   /// Fetches and returns the snapshot of the FirechatUser designated by
   /// the given [firebaseUserId].
   ///
@@ -10,13 +13,12 @@ class FirestoreUserInterface {
   /// instance, null is returned.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<DocumentSnapshot> userDocumentRefByFirebaseId(
+  Future<DocumentSnapshot> userDocumentRefByFirebaseId(
       {@required String firebaseUserId}) async {
     if (firebaseUserId == null || firebaseUserId.isEmpty) return null;
-    // TODO: make the path to be flexible / configured.
     return await Firestore.instance
-        .collection(_usersCollectionName)
-        .where("firebaseUserId", isEqualTo: firebaseUserId)
+        .collection(_usersPath)
+        .where(FirechatUserKeys.kFirebaseUserId, isEqualTo: firebaseUserId)
         .getDocuments()
         .then((QuerySnapshot snap) {
       if (snap.documents.isEmpty) return null;
@@ -30,7 +32,7 @@ class FirestoreUserInterface {
   /// Returns the [DocumentSnapshot] of the given [ref].
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<DocumentSnapshot> userFromReference(
+  Future<DocumentSnapshot> userFromReference(
       {@required DocumentReference ref}) async {
     return ref.get().catchError((e) {
       print(e);
@@ -48,12 +50,13 @@ class FirestoreUserInterface {
   /// instance, null is returned.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<DocumentSnapshot> userDocumentSnapshotByUserId(
+  Future<DocumentSnapshot> userDocumentSnapshotByUserId(
       {@required String userId}) async {
+    print(_usersPath);
+
     if (userId == null || userId.isEmpty) return null;
-    // TODO: make the path to be flexible / configured.
     return await Firestore.instance
-        .collection(_usersCollectionName)
+        .collection(_usersPath)
         .where(FirechatUserKeys.kUserId, isEqualTo: userId)
         .getDocuments()
         .then((QuerySnapshot snap) {
@@ -72,7 +75,7 @@ class FirestoreUserInterface {
   /// instance, null is returned.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<DocumentReference> userDocumentReferenceByUserId(
+  Future<DocumentReference> userDocumentReferenceByUserId(
       {@required String userId}) async {
     return await userDocumentSnapshotByUserId(userId: userId)
         .then((DocumentSnapshot snap) => snap.reference)
@@ -91,11 +94,9 @@ class FirestoreUserInterface {
   /// [selfReference] has been modified, it can be saved locally.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<FirechatUser> uploadFirechatUser(FirechatUser user) async {
+  Future<FirechatUser> uploadFirechatUser(FirechatUser user) async {
     if (user.selfReference == null)
-      // TODO: make the path to be flexible / configured.
-      user.selfReference =
-          Firestore.instance.collection(_usersCollectionName).document();
+      user.selfReference = Firestore.instance.collection(_usersPath).document();
     await user.selfReference.setData(user.toMap()).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreUserUploadError;
@@ -113,11 +114,11 @@ class FirestoreUserInterface {
   /// might have changed, it is to be replaced.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<FirechatUser> updateFirebaseIdOf(
+  Future<FirechatUser> updateFirebaseIdOf(
       FirechatUser user, String newId) async {
     user.firebaseUserId = newId;
     await user.selfReference
-        .updateData({"firebaseUserId": newId}).catchError((e) {
+        .updateData({FirechatUserKeys.kFirebaseUserId: newId}).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreUserUpdateError;
     });

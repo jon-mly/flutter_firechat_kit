@@ -43,6 +43,6 @@ class FirechatCurrentUser {
     FirechatUser mostRecentData = _user;
     if (avatarUrl != null) mostRecentData.avatarUrl = avatarUrl;
     if (displayName != null) mostRecentData.displayName = displayName;
-    FirestoreUserInterface.uploadFirechatUser(mostRecentData);
+    FirestoreUserInterface().uploadFirechatUser(mostRecentData);
   }
 }

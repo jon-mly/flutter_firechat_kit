@@ -32,7 +32,6 @@ class FirechatConversation {
 
   BehaviorSubject<List<FirechatUser>> _focusingUsersController =
       BehaviorSubject<List<FirechatUser>>.seeded([]);
-  // TODO: add a Configuration item to set if the current user should be counted or not as a focusing user in this stream
 
   /// The [Stream] for the list of users that are currently in the chatroom.
   ///
@@ -100,7 +99,7 @@ class FirechatConversation {
   /// To request older messages, call [requestOlderMessages].
   Future<void> _streamChatroomAndFirstMessages() async {
     // Gets and listens to the stream of the Chatroom.
-    FirestoreChatroomInterface.chatroomStreamFor(
+    FirestoreChatroomInterface().chatroomStreamFor(
             chatroomRef: _chatroom.selfReference)
         .listen((DocumentSnapshot snap) {
       if (snap == null || !snap.exists) return null;
@@ -114,7 +113,7 @@ class FirechatConversation {
 
     // Gets and listens to the stream of messages related to the Chatroom.
     Stream<List<DocumentSnapshot>> _lastListener =
-        await FirestoreMessageInterface.streamForRecentAndFutureMessagesIn(
+        await FirestoreMessageInterface().streamForRecentAndFutureMessagesIn(
             chatroomReference: _chatroom.selfReference);
 
     if (_lastListener == null) return;
@@ -129,8 +128,8 @@ class FirechatConversation {
   /// changing any stream.
   Future<void> requestOlderMessages() async {
     Stream<List<DocumentSnapshot>> _nextListener =
-        await FirestoreMessageInterface.streamForOlderMessages(
-            chatroomReference: _chatroom.selfReference);
+        await FirestoreMessageInterface()
+            .streamForOlderMessages(chatroomReference: _chatroom.selfReference);
     if (_nextListener == null) return;
     _addListenerFor(messagesStream: _nextListener);
     _streams.add(_nextListener);
@@ -171,7 +170,6 @@ class FirechatConversation {
 
     _messagesController.add(orderedMessages);
 
-    // TODO: add a condition that checks the configuration
     await _markMessagesAsReadIfFocusing();
   }
 
@@ -186,10 +184,12 @@ class FirechatConversation {
         .toList());
 
     // Focusing users Stream update
-    // TODO: handle configuration item to know if the current user should be excluded from this list.
-    List<DocumentReference> peopleFocusing = _chatroom.focusingPeopleRef
-        .where((DocumentReference ref) => ref != _authorRef)
-        .toList();
+    List<DocumentReference> peopleFocusing =
+        _chatroom.focusingPeopleRef.where((DocumentReference ref) {
+      if (FirechatKit.instance.configuration.countCurrentUSerInFocusList)
+        return true;
+      return (ref != _authorRef);
+    }).toList();
     _focusingUsersController.sink.add(_contactsList
         .where(
             (FirechatUser user) => peopleFocusing.contains(user.selfReference))
@@ -229,7 +229,7 @@ class FirechatConversation {
         .toList();
     List<Future<DocumentSnapshot>> fetchingTasks = contactsToFetchReferences
         .map((DocumentReference ref) =>
-            FirestoreUserInterface.userFromReference(ref: ref))
+            FirestoreUserInterface().userFromReference(ref: ref))
         .toList();
     await Future.wait(fetchingTasks).then((List<DocumentSnapshot> snapshots) {
       snapshots.forEach((DocumentSnapshot snap) =>
@@ -264,7 +264,7 @@ class FirechatConversation {
         (!isFocusing && !_chatroom.focusingPeopleRef.contains(_authorRef))))
       return;
 
-    await FirestoreChatroomInterface.setUserFocusing(
+    await FirestoreChatroomInterface().setUserFocusing(
             chatroom: _chatroom,
             userReference: _authorRef,
             isFocusing: isFocusing)
@@ -286,7 +286,7 @@ class FirechatConversation {
         (!isComposing && !_chatroom.composingPeopleRef.contains(_authorRef))))
       return;
 
-    await FirestoreChatroomInterface.setUserIsComposing(
+    await FirestoreChatroomInterface().setUserIsComposing(
             chatroom: _chatroom,
             userReference: _authorRef,
             isComposing: isComposing)
@@ -326,8 +326,8 @@ class FirechatConversation {
         assetType: assetType,
         date: DateTime.now());
 
-    await FirestoreMessageInterface.send(messageToSend);
-    await FirestoreChatroomInterface.updateLastMessageFor(
+    await FirestoreMessageInterface().send(messageToSend);
+    await FirestoreChatroomInterface().updateLastMessageFor(
         chatroom: _chatroom, message: messageToSend);
   }
 
@@ -335,7 +335,7 @@ class FirechatConversation {
   ///
   /// If an error occurs, a [FirechatError] is thrown.
   Future<void> deleteMessage(FirechatMessage message) async {
-    await FirestoreMessageInterface.delete(message).catchError((e) {
+    await FirestoreMessageInterface().delete(message).catchError((e) {
       if (e is FirechatError) throw e;
       throw FirechatError.kMessageDeletionError;
     });
@@ -348,7 +348,7 @@ class FirechatConversation {
   /// If an error occurs, a [FirechatError] is thrown.
   Future<void> currentUserReadAllMessages() async {
     if (_mostRecentMessage == null) return;
-    FirestoreChatroomInterface.setLastReadMessageForUser(
+    FirestoreChatroomInterface().setLastReadMessageForUser(
             userRef: _authorRef,
             chatroom: _chatroom,
             message: _mostRecentMessage)
@@ -366,7 +366,7 @@ class FirechatConversation {
   /// If an error occurs, a [FirechatError] is thrown.
   Future<void> _createConversationAndStream() async {
     _chatroom =
-        await FirestoreChatroomInterface.exportToFirestore(chatroom: _chatroom)
+        await FirestoreChatroomInterface().exportToFirestore(chatroom: _chatroom)
             .catchError((e) {
       if (e is FirechatError) throw e;
       throw FirechatError.kFirestoreChatroomUploadError;
@@ -383,8 +383,18 @@ class FirechatConversation {
   Future<void> _markMessagesAsReadIfFocusing() async {
     if (!_chatroom.focusingPeopleRef.contains(_authorRef)) return;
 
-    print("Marking as up to date in the conversation");
+    await currentUserReadAllMessages();
+  }
 
+  Future<void> markMessagesAsRead() async {
+    if (FirechatKit.instance.configuration.automaticallyReadMessages &&
+        _chatroom.focusingPeopleRef.contains(_authorRef))
+      print(
+          """FirechatKit is configured to automatically mark the messages as read when the current user is focusing the chatroom.
+          [FirechatConversation.markMessagesAsRead()] has been called while the current user was focusing the chatroom.
+          While this does not affect the behaviour of Firechat, a Firestore request is performed twice, which is unnécessary.
+          You may want to check and remove unnecessary calls to this method. 
+          """);
     await currentUserReadAllMessages();
   }
 
@@ -427,7 +437,7 @@ class FirechatConversation {
   Future<void> setChatroomDetails({@required Map<String, dynamic> map}) async {
     _chatroom.details = map;
 
-    await FirestoreChatroomInterface.updateChatroomDetails(chatroom: _chatroom)
+    await FirestoreChatroomInterface().updateChatroomDetails(chatroom: _chatroom)
         .catchError((e) {
       if (e is FirechatError) throw e;
       throw FirechatError.kFirestoreChatroomUploadError;
