@@ -168,39 +168,6 @@ class FirechatChatrooms {
   /// Updates [_usersByChatroom] for the currently streamed chatrooms.
   Future<void> _updateUsersByChatroomMapUsing(
       {@required List<FirechatChatroom> chatrooms}) async {
-//    if (_usersByChatroom == null) _usersByChatroom = {};
-//
-//    // Removing the entries for conversations that are not in _chatrooms
-//    // since the previous update.
-//    _usersByChatroom.removeWhere((DocumentReference chatroomRef, _) =>
-//        !chatrooms.any((FirechatChatroom chatroom) =>
-//            chatroom.selfReference == chatroomRef));
-//
-//    // Gets the entries for conversations that were not in _chatrooms
-//    // on the last update.
-//    List<FirechatChatroom> newInstancesSinceUpdate = chatrooms
-//        .where((FirechatChatroom chatroom) =>
-//            !_usersByChatroom.keys.contains(chatroom.selfReference))
-//        .toList();
-//
-//    /// For each new instance, the [FirechatUser] who takes part in it is
-//    /// fetched.
-//    await Future.forEach(newInstancesSinceUpdate,
-//        (FirechatChatroom chatroom) async {
-//      List<DocumentReference> contactsRef = chatroom.peopleRef
-//          .where((DocumentReference ref) => ref != userDocumentReference)
-//          .toList();
-//
-//      List<FirechatUser> users = [];
-//      await Future.forEach(contactsRef, (DocumentReference contactRef) async {
-//        FirechatUser user = await FirestoreUserInterface()
-//            .userFromReference(ref: contactRef)
-//            .then((DocumentSnapshot snap) =>
-//                FirechatUser.fromMap(snap.data, snap.reference));
-//        users.add(user);
-//      });
-//      _usersByChatroom[chatroom.selfReference] = users;
-//    });
     // The map of all the contacts that are senders of the currently streamed
     // messages, ordered by chatroom (identified by their references).
     List<DocumentReference> listOfContactsToStream = [];
