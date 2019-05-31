@@ -5,6 +5,9 @@ class FirestoreMessageInterface {
   static final int _defaultListenerSize = 20;
   static DocumentSnapshot nextStartBound;
 
+  String get _messagesPath =>
+      FirechatKit.instance.configuration.basePath + _messagesCollectionName;
+
   //
   // ######### PAGINATED MESSAGES STREAMS
   //
@@ -17,10 +20,8 @@ class FirestoreMessageInterface {
   ///
   /// If an error occurs, or if [chatroomReference] is null, a [FirechatError]
   /// is thrown.
-  static Future<Stream<List<DocumentSnapshot>>>
-      streamForRecentAndFutureMessagesIn(
-          {@required DocumentReference chatroomReference,
-          int minimumSize}) async {
+  Future<Stream<List<DocumentSnapshot>>> streamForRecentAndFutureMessagesIn(
+      {@required DocumentReference chatroomReference, int minimumSize}) async {
     if (chatroomReference == null)
       throw FirechatError.kNullDocumentReferenceError;
 
@@ -30,7 +31,7 @@ class FirestoreMessageInterface {
     // and for the next ones, we first perform a first simple query to
     // get the last message of this query.
     return await chatroomReference
-        .collection(_messagesCollectionName)
+        .collection(_messagesPath)
         .orderBy(FirechatMessageKeys.kDate, descending: true)
         .limit(minimumSize)
         .getDocuments()
@@ -47,7 +48,7 @@ class FirestoreMessageInterface {
       // newer than the one identified as [nextStartBound], and will also
       // listen for the next ones to come since it has no size limit.
       Stream<List<DocumentSnapshot>> stream = chatroomReference
-          .collection(_messagesCollectionName)
+          .collection(_messagesPath)
           .orderBy(FirechatMessageKeys.kDate, descending: true)
           .endAt([nextStartBound?.data[FirechatMessageKeys.kDate]])
           .snapshots()
@@ -79,7 +80,7 @@ class FirestoreMessageInterface {
   ///
   /// If an error occurs, or if [chatroomReference] is null, a [FirechatError]
   /// is thrown.
-  static Future<Stream<List<DocumentSnapshot>>> streamForOlderMessages(
+  Future<Stream<List<DocumentSnapshot>>> streamForOlderMessages(
       {@required DocumentReference chatroomReference, int sizeLimit}) async {
     if (chatroomReference == null)
       throw FirechatError.kNullDocumentReferenceError;
@@ -91,7 +92,7 @@ class FirestoreMessageInterface {
     // To create the [Stream] that will listen for a defined array of items, we
     // first perform a first simple query to get the last message of this query.
     return await chatroomReference
-        .collection(_messagesCollectionName)
+        .collection(_messagesPath)
         .orderBy(FirechatMessageKeys.kDate, descending: true)
         .startAt([nextStartBound.data[FirechatMessageKeys.kDate]])
         .limit(sizeLimit)
@@ -106,7 +107,7 @@ class FirestoreMessageInterface {
           // Then the Stream is created, and will listen for the messages
           // older than the one identified as [nextStartBound].
           Stream<List<DocumentSnapshot>> stream = chatroomReference
-              .collection(_messagesCollectionName)
+              .collection(_messagesPath)
               .orderBy(FirechatMessageKeys.kDate, descending: true)
               .startAfter([nextStartBound.data[FirechatMessageKeys.kDate]])
               .endAt([end.data[FirechatMessageKeys.kDate]])
@@ -132,7 +133,7 @@ class FirestoreMessageInterface {
   ///
   /// If an error occurs or if the [reference] is null, a [FirechatError] is
   /// thrown.
-  static Future<FirechatMessage> messageFor(
+  Future<FirechatMessage> messageFor(
       {@required DocumentReference reference}) async {
     if (reference == null) throw FirechatError.kNullDocumentReferenceError;
     return await reference.get().then((DocumentSnapshot snap) {
@@ -154,10 +155,10 @@ class FirestoreMessageInterface {
   /// list of all sent messages).
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<FirechatMessage> send(FirechatMessage message) async {
+  Future<FirechatMessage> send(FirechatMessage message) async {
     if (message.selfReference == null)
       message.selfReference =
-          message.chatroomRef.collection(_messagesCollectionName).document();
+          message.chatroomRef.collection(_messagesPath).document();
     await Firestore.instance
         .runTransaction((_) => message.selfReference.setData(message.toMap()))
         .catchError((e) {
@@ -172,7 +173,7 @@ class FirestoreMessageInterface {
   /// Note that all references to this message should be removed as well.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<void> delete(FirechatMessage message) async {
+  Future<void> delete(FirechatMessage message) async {
     if (message.selfReference == null)
       throw FirechatError.kMessageNotFoundError;
     await message.selfReference.delete().catchError((e) {

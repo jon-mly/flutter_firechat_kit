@@ -5,6 +5,9 @@ class FirestoreChatroomInterface {
   static final int _defaultListenerSize = 20;
   static DocumentSnapshot nextStartBound;
 
+  String get _chatroomsPath =>
+      FirechatKit.instance.configuration.basePath + _chatroomsCollectionName;
+
   //
   // ########## CHATROOMS PAGINATED STREAMS
   //
@@ -17,9 +20,8 @@ class FirestoreChatroomInterface {
   ///
   /// If an error occurs, or if [userReference] is null, a [FirechatError]
   /// is thrown.
-  static Future<Stream<List<DocumentSnapshot>>>
-      streamForRecentAndFutureChatroomsFor(
-          {@required DocumentReference userReference, int minimumSize}) async {
+  Future<Stream<List<DocumentSnapshot>>> streamForRecentAndFutureChatroomsFor(
+      {@required DocumentReference userReference, int minimumSize}) async {
     if (userReference == null) throw FirechatError.kNullDocumentReferenceError;
 
     if (minimumSize == null) minimumSize = _defaultListenerSize;
@@ -28,7 +30,7 @@ class FirestoreChatroomInterface {
     // and for the next ones, we first perform a first simple query to
     // get the last message of this query.
     return await Firestore.instance
-        .collection(_chatroomsCollectionName)
+        .collection(_chatroomsPath)
         .orderBy(FirechatChatroomKeys.kLastMessageDate, descending: true)
         .where(FirechatChatroomKeys.kPeopleRef, arrayContains: userReference)
         .limit(minimumSize)
@@ -48,7 +50,7 @@ class FirestoreChatroomInterface {
         // newer than the one identified as [nextStartBound], and will also
         // listen for the next ones to be updated since it has no size limit.
         stream = Firestore.instance
-            .collection(_chatroomsCollectionName)
+            .collection(_chatroomsPath)
             .orderBy(FirechatChatroomKeys.kLastMessageDate, descending: true)
             .where(FirechatChatroomKeys.kPeopleRef,
                 arrayContains: userReference)
@@ -60,7 +62,7 @@ class FirestoreChatroomInterface {
         // and will also listen for the next ones to be updated since it has no
         // size limit.
         stream = Firestore.instance
-            .collection(_chatroomsCollectionName)
+            .collection(_chatroomsPath)
             .orderBy(FirechatChatroomKeys.kLastMessageDate, descending: true)
             .where(FirechatChatroomKeys.kPeopleRef,
                 arrayContains: userReference)
@@ -89,7 +91,7 @@ class FirestoreChatroomInterface {
   ///
   /// If an error occurs, or if [userReference] is null, a [FirechatError]
   /// is thrown.
-  static Future<Stream<List<DocumentSnapshot>>> streamOlderChatroomsFor(
+  Future<Stream<List<DocumentSnapshot>>> streamOlderChatroomsFor(
       {@required DocumentReference userReference, int sizeLimit}) async {
     if (userReference == null) throw FirechatError.kNullDocumentReferenceError;
 
@@ -99,7 +101,7 @@ class FirestoreChatroomInterface {
     // and for the next ones, we first perform a first simple query to
     // get the last message of this query.
     return await Firestore.instance
-        .collection(_chatroomsCollectionName)
+        .collection(_chatroomsPath)
         .orderBy(FirechatChatroomKeys.kLastMessageDate, descending: true)
         .where(FirechatChatroomKeys.kPeopleRef, arrayContains: userReference)
         .startAt([nextStartBound.data[FirechatChatroomKeys.kLastMessageDate]])
@@ -115,7 +117,7 @@ class FirestoreChatroomInterface {
           // Then the Stream is created, and will listen for the chatrooms
           // older than the one identified as [nextStartBound].
           Stream<List<DocumentSnapshot>> stream = Firestore.instance
-              .collection(_chatroomsCollectionName)
+              .collection(_chatroomsPath)
               .orderBy(FirechatChatroomKeys.kLastMessageDate, descending: true)
               .where(FirechatChatroomKeys.kPeopleRef,
                   arrayContains: userReference)
@@ -140,7 +142,7 @@ class FirestoreChatroomInterface {
 
   /// Returns the [Stream] of the document related to the [FirechatChatroom]
   /// designated by [chatroomRef].
-  static Stream<DocumentSnapshot> chatroomStreamFor(
+  Stream<DocumentSnapshot> chatroomStreamFor(
       {@required DocumentReference chatroomRef}) {
     return chatroomRef.snapshots();
   }
@@ -157,13 +159,13 @@ class FirestoreChatroomInterface {
   /// steps :
   /// all the private chatrooms of the current user are fetched, and the
   /// filtration to find the correct one is done locally.
-  static Future<FirechatChatroom> privateChatroomBetween(
+  Future<FirechatChatroom> privateChatroomBetween(
       {@required DocumentReference firstUserRef,
       @required DocumentReference secondUserRef}) async {
     // Gets conversations where the first user takes part.
     // TODO: make the path to be flexible / configured.
     List<FirechatChatroom> candidates = await Firestore.instance
-        .collection(_chatroomsCollectionName)
+        .collection(_chatroomsPath)
         .where(FirechatChatroomKeys.kChatroomTypeIndex,
             isEqualTo: FirechatChatroomType.oneToOne.index)
         .where(FirechatChatroomKeys.kPeopleRef, arrayContains: firstUserRef)
@@ -196,12 +198,12 @@ class FirestoreChatroomInterface {
   /// with the defined reference.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<FirechatChatroom> exportToFirestore(
+  Future<FirechatChatroom> exportToFirestore(
       {@required FirechatChatroom chatroom}) async {
     // TODO: make the path to be flexible / configured.
     if (chatroom.selfReference == null)
       chatroom.selfReference =
-          Firestore.instance.collection(_chatroomsCollectionName).document();
+          Firestore.instance.collection(_chatroomsPath).document();
     await Firestore.instance
         .runTransaction((_) => chatroom.selfReference.setData(chatroom.toMap()))
         .catchError((e) {
@@ -216,7 +218,7 @@ class FirestoreChatroomInterface {
   /// This required [chatroom.details] to be set.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<void> updateChatroomDetails(
+  Future<void> updateChatroomDetails(
       {@required FirechatChatroom chatroom}) async {
     if (chatroom.selfReference == null)
       throw FirechatError.kNullDocumentReferenceError;
@@ -238,7 +240,7 @@ class FirestoreChatroomInterface {
   /// with the [userReference] added or removed accordingly to [isComposing].
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<void> setUserIsComposing(
+  Future<void> setUserIsComposing(
       {@required FirechatChatroom chatroom,
       @required DocumentReference userReference,
       @required bool isComposing}) async {
@@ -274,7 +276,7 @@ class FirestoreChatroomInterface {
   /// with the [userReference] added or removed accordingly to [isFocusing].
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<void> setUserFocusing(
+  Future<void> setUserFocusing(
       {@required FirechatChatroom chatroom,
       @required DocumentReference userReference,
       @required bool isFocusing}) async {
@@ -310,7 +312,7 @@ class FirestoreChatroomInterface {
   /// message data and uploads the modified field to Firestore.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<void> updateLastMessageFor(
+  Future<void> updateLastMessageFor(
       {@required FirechatChatroom chatroom,
       @required FirechatMessage message}) async {
     if (chatroom.selfReference == null)
@@ -339,7 +341,7 @@ class FirestoreChatroomInterface {
   /// The modified [chatroom] is then uploaded to Firestore.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<void> setLastReadMessageForUser(
+  Future<void> setLastReadMessageForUser(
       {@required DocumentReference userRef,
       @required FirechatChatroom chatroom,
       @required FirechatMessage message}) async {

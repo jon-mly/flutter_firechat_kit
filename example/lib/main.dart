@@ -3,12 +3,14 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:firechat_kit/firechat_kit.dart';
-
 import 'pages/login_page.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
-void main() => runApp(MyApp());
+void main() {
+  FirechatKit.instance.configure();
+  runApp(MyApp());
+}
 
 class MyApp extends StatefulWidget {
   @override

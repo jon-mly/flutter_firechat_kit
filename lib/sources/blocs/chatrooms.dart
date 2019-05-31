@@ -56,7 +56,7 @@ class FirechatChatrooms {
     // result to a list of Chatroom instances, that is added to
     // _chatroomController.
     Stream<List<DocumentSnapshot>> lastListener =
-        await FirestoreChatroomInterface.streamForRecentAndFutureChatroomsFor(
+        await FirestoreChatroomInterface().streamForRecentAndFutureChatroomsFor(
             userReference: userDocumentReference);
     if (lastListener == null) return;
     _addListenerFor(chatroomsStream: lastListener);
@@ -70,7 +70,7 @@ class FirechatChatrooms {
   /// changing any stream.
   Future<void> requestOlderChatrooms() async {
     Stream<List<DocumentSnapshot>> nextListener =
-        await FirestoreChatroomInterface.streamOlderChatroomsFor(
+        await FirestoreChatroomInterface().streamOlderChatroomsFor(
             userReference: userDocumentReference);
     if (nextListener == null) return;
     _addListenerFor(chatroomsStream: nextListener);
@@ -123,7 +123,7 @@ class FirechatChatrooms {
       {@required DocumentReference contactRef}) async {
     // Search for an existing conversation between the two users.
     FirechatChatroom candidate =
-        await FirestoreChatroomInterface.privateChatroomBetween(
+        await FirestoreChatroomInterface().privateChatroomBetween(
                 firstUserRef: userDocumentReference, secondUserRef: contactRef)
             .catchError((e) {
       if (e is FirechatError) throw e;
@@ -179,10 +179,10 @@ class FirechatChatrooms {
 
       List<FirechatUser> users = [];
       await Future.forEach(contactsRef, (DocumentReference contactRef) async {
-        FirechatUser user =
-            await FirestoreUserInterface.userFromReference(ref: contactRef)
-                .then((DocumentSnapshot snap) =>
-                    FirechatUser.fromMap(snap.data, snap.reference));
+        FirechatUser user = await FirestoreUserInterface()
+            .userFromReference(ref: contactRef)
+            .then((DocumentSnapshot snap) =>
+                FirechatUser.fromMap(snap.data, snap.reference));
         users.add(user);
       });
       _usersByChatroom[chatroom.selfReference] = users;
@@ -217,8 +217,8 @@ class FirechatChatrooms {
     await Future.forEach(chatroomsWithUpdateRequired,
         (FirechatChatroom chatroom) async {
       if (chatroom.lastMessageRef == null) return null;
-      FirechatMessage message = await FirestoreMessageInterface.messageFor(
-          reference: chatroom.lastMessageRef);
+      FirechatMessage message = await FirestoreMessageInterface()
+          .messageFor(reference: chatroom.lastMessageRef);
       _lastMessagesByChatroom[chatroom.selfReference] = message;
     });
   }
