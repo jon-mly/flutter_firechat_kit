@@ -327,8 +327,8 @@ class FirechatConversation {
         date: DateTime.now());
 
     await FirestoreMessageInterface.send(messageToSend);
-    await FirestoreChatroomInterface.updateLastMessageDateFor(
-        chatroom: _chatroom, date: messageToSend.date);
+    await FirestoreChatroomInterface.updateLastMessageFor(
+        chatroom: _chatroom, message: messageToSend);
   }
 
   /// Deletes the given [message].

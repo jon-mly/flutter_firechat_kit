@@ -9,6 +9,7 @@ class FirechatChatroomKeys {
   static final String kComposingPeopleRef = "composingPeopleRef";
   static final String kFocusingPeopleRef = "focusingPeopleRef";
   static final String kLastMessageDate = "lastMessageDate";
+  static final String kLastMessageRef = "lastMessageRef";
   static final String kLastMessagesRead = "lastMessagesRead";
   static final String kReadByPrefix = "readBy_";
   static final String kDetails = "details";
@@ -35,6 +36,9 @@ class FirechatChatroom {
 
   /// The [DateTime] of the last message sent.
   DateTime lastMessageDate;
+
+  /// The [DocumentReference] of the last message sent.
+  DocumentReference lastMessageRef;
 
   /// The [Map] for the [DocumentReference] of the last [FirechatMessage] read
   /// by each of the [FirechatUser], identified by the [DocumentReference]
@@ -63,6 +67,7 @@ class FirechatChatroom {
       this.focusingPeopleRef,
       this.isLocal: false,
       this.lastMessageDate,
+      this.lastMessageRef,
       this.details,
       this.lastMessagesRead});
 
@@ -83,6 +88,7 @@ class FirechatChatroom {
         null;
     this.lastMessageDate = DateTime.fromMillisecondsSinceEpoch(
         map[FirechatChatroomKeys.kLastMessageDate]);
+    this.lastMessageRef = map[FirechatChatroomKeys.kLastMessageRef];
     this.isLocal = false;
     this.details = map[FirechatChatroomKeys.kDetails];
 
@@ -112,6 +118,7 @@ class FirechatChatroom {
       FirechatChatroomKeys.kFocusingPeopleRef: this.focusingPeopleRef,
       FirechatChatroomKeys.kLastMessageDate:
           this.lastMessageDate.millisecondsSinceEpoch,
+      FirechatChatroomKeys.kLastMessageRef: this.lastMessageRef,
       FirechatChatroomKeys.kDetails: this.details
     };
 

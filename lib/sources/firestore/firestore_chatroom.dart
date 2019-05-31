@@ -306,18 +306,21 @@ class FirestoreChatroomInterface {
   // ######## MESSAGE SENT UPDATE
   //
 
-  /// Updates the [FirechatChatroom.lastMessageDate] of the given [chatroom]
-  /// and uploads the modified field to Firestore.
+  /// Updates the [FirechatChatroom] of the given [chatroom] with the last
+  /// message data and uploads the modified field to Firestore.
   ///
   /// If an error occurs, a [FirechatError] is thrown.
-  static Future<void> updateLastMessageDateFor(
-      {@required FirechatChatroom chatroom, @required DateTime date}) async {
+  static Future<void> updateLastMessageFor(
+      {@required FirechatChatroom chatroom,
+      @required FirechatMessage message}) async {
     if (chatroom.selfReference == null)
       throw FirechatError.kNullDocumentReferenceError;
 
     await Firestore.instance
         .runTransaction((_) => chatroom.selfReference.updateData({
-              FirechatChatroomKeys.kLastMessageDate: date.millisecondsSinceEpoch
+              FirechatChatroomKeys.kLastMessageDate:
+                  message.date.millisecondsSinceEpoch,
+              FirechatChatroomKeys.kLastMessageRef: message.selfReference
             }))
         .catchError((e) {
       print(e);
