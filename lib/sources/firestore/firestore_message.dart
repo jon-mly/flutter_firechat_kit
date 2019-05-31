@@ -40,9 +40,8 @@ class FirestoreMessageInterface {
       // as the start bound of the stream that will be returned.
       if (documents.length >= 1)
         nextStartBound = documents[documents.length - 1];
-      // TODO: what for the chatroom which has no message, the stream should still be set if the chatroom exists.
       else
-        return null;
+        nextStartBound = null;
 
       // Then the Stream is created, and will listen for the messages
       // newer than the one identified as [nextStartBound], and will also
@@ -50,7 +49,7 @@ class FirestoreMessageInterface {
       Stream<List<DocumentSnapshot>> stream = chatroomReference
           .collection(_messagesCollectionName)
           .orderBy(FirechatMessageKeys.kDate, descending: true)
-          .endAt([nextStartBound.data[FirechatMessageKeys.kDate]])
+          .endAt([nextStartBound?.data[FirechatMessageKeys.kDate]])
           .snapshots()
           .map((QuerySnapshot query) => query.documents);
       // If the count of documents is lower than the size limit, this

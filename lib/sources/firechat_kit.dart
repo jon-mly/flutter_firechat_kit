@@ -12,6 +12,9 @@ class FirechatKit {
 
   bool _isConfigured = false;
 
+  FirechatKitConfiguration _configuration;
+  FirechatKitConfiguration get configuration => _configuration;
+
   FirechatCurrentUser _currentUser;
   FirechatCurrentUser get currentUser => _currentUser;
 
@@ -24,7 +27,11 @@ class FirechatKit {
   /// Configures [FirechatKit] to conforms to your configuration.
   ///
   /// This should be called when the app is launched.
-  void configure() {
+  void configure({FirechatKitConfiguration configuration}) {
+    if (configuration == null)
+      _configuration = FirechatKitConfiguration.defaultConfiguration();
+    else
+      _configuration = configuration;
     _isConfigured = true;
   }
 

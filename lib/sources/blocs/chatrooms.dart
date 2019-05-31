@@ -13,7 +13,6 @@ class FirechatChatrooms {
   /// The last state of the [FirechatChatroom]s related to the current user.
   List<FirechatChatroom> _chatrooms = [];
 
-  // TODO: refactor to be a list of [FirechatUser].
   /// The [Map] of users associated with each [FirechatChatroom].
   ///
   /// This is to be used to get the data relative to the other user for each

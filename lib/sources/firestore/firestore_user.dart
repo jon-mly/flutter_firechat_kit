@@ -3,6 +3,9 @@ part of firechat_kit;
 class FirestoreUserInterface {
   static final String _usersCollectionName = "users";
 
+  String get _usersPath =>
+      FirechatKit.instance.configuration.basePath + _usersCollectionName;
+
   /// Fetches and returns the snapshot of the FirechatUser designated by
   /// the given [firebaseUserId].
   ///

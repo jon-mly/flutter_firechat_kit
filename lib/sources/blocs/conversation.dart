@@ -32,7 +32,6 @@ class FirechatConversation {
 
   BehaviorSubject<List<FirechatUser>> _focusingUsersController =
       BehaviorSubject<List<FirechatUser>>.seeded([]);
-  // TODO: add a Configuration item to set if the current user should be counted or not as a focusing user in this stream
 
   /// The [Stream] for the list of users that are currently in the chatroom.
   ///
@@ -171,7 +170,6 @@ class FirechatConversation {
 
     _messagesController.add(orderedMessages);
 
-    // TODO: add a condition that checks the configuration
     await _markMessagesAsReadIfFocusing();
   }
 
@@ -186,10 +184,12 @@ class FirechatConversation {
         .toList());
 
     // Focusing users Stream update
-    // TODO: handle configuration item to know if the current user should be excluded from this list.
-    List<DocumentReference> peopleFocusing = _chatroom.focusingPeopleRef
-        .where((DocumentReference ref) => ref != _authorRef)
-        .toList();
+    List<DocumentReference> peopleFocusing =
+        _chatroom.focusingPeopleRef.where((DocumentReference ref) {
+      if (FirechatKit.instance.configuration.countCurrentUSerInFocusList)
+        return true;
+      return (ref != _authorRef);
+    }).toList();
     _focusingUsersController.sink.add(_contactsList
         .where(
             (FirechatUser user) => peopleFocusing.contains(user.selfReference))
@@ -383,8 +383,18 @@ class FirechatConversation {
   Future<void> _markMessagesAsReadIfFocusing() async {
     if (!_chatroom.focusingPeopleRef.contains(_authorRef)) return;
 
-    print("Marking as up to date in the conversation");
+    await currentUserReadAllMessages();
+  }
 
+  Future<void> markMessagesAsRead() async {
+    if (FirechatKit.instance.configuration.automaticallyReadMessages &&
+        _chatroom.focusingPeopleRef.contains(_authorRef))
+      print(
+          """FirechatKit is configured to automatically mark the messages as read when the current user is focusing the chatroom.
+          [FirechatConversation.markMessagesAsRead()] has been called while the current user was focusing the chatroom.
+          While this does not affect the behaviour of Firechat, a Firestore request is performed twice, which is unnécessary.
+          You may want to check and remove unnecessary calls to this method. 
+          """);
     await currentUserReadAllMessages();
   }
 
