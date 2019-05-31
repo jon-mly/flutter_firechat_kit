@@ -111,10 +111,11 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
           itemCount: chatrooms.length,
           itemBuilder: (BuildContext context, int index) {
             FirechatChatroom chatroom = chatrooms[index];
-            FirechatUser contact = FirechatKit
-                .instance.chatrooms.usersByChatroom[chatroom.selfReference];
+            List<FirechatUser> contacts = FirechatKit.instance.chatrooms
+                .otherPeopleIn(chatroom: chatroom);
             return ListTile(
-              title: Text(contact?.displayName ?? contact.userId),
+              title: Text(
+                  "${contacts.map((contact) => contact?.displayName ?? contact.userId)}"),
               onTap: () => _getSelectedConversation(chatroom: chatroom),
             );
           },
