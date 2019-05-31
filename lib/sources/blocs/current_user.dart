@@ -18,6 +18,7 @@ class FirechatCurrentUser {
   void _create() {
     // Listens for changes of the instance in Firestore and fills the up
     // when a change is received.
+    // TODO: should not call directly Firestore methods
     _user.selfReference.snapshots().listen((DocumentSnapshot snap) {
       if (snap.data == null || snap.data.isEmpty) return;
       FirechatUser currentUser =

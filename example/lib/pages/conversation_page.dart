@@ -238,10 +238,13 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
                   child: CircularProgressIndicator(),
                 ),
               );
+
             FirechatMessage message = messages[index];
+            FirechatUser sender = _conversation.senderOf(message: message);
             bool sentByCurrentUser =
                 FirechatKit.instance.authorIsCurrentUserFor(message: message);
             bool seen = _conversation.messageIsReadByOthers(message);
+
             Widget tile = ListTile(
               title: Text(
                 message.content,
@@ -266,7 +269,7 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
                       textAlign: TextAlign.end,
                     )
                   : Text(
-                      "The other one",
+                      sender.displayName ?? sender.userId ?? "Someone",
                       textAlign: TextAlign.start,
                     ),
             );
@@ -344,47 +347,55 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
     return _messagesListAndTypingInfos();
   }
 
+  Widget _buildPageWith({@required FirechatChatroom chatroom}) {
+    return StreamBuilder(
+      stream: _conversation.onContactsUpdate,
+      builder: (BuildContext context, snapshot) {
+        String conversationTitle;
+        if (chatroom == null)
+          conversationTitle = "";
+        else {
+          conversationTitle = chatroom.title ?? "CONVERSATION";
+        }
+
+        return Scaffold(
+            appBar: AppBar(
+              title: Text(conversationTitle),
+              backgroundColor: Colors.teal,
+              leading: IconButton(
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                ),
+                onPressed: Navigator.of(context).pop,
+              ),
+              actions: <Widget>[
+                IconButton(
+                  icon: Icon(Icons.edit),
+                  color: Colors.white,
+                  onPressed: () => _presentNameEditTextField(chatroom.title),
+                ),
+              ],
+            ),
+            body: Column(
+              children: <Widget>[
+                Expanded(
+                  child: _messageListInGestureWrapper(),
+                ),
+                _messageBar()
+              ],
+            ));
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<FirechatChatroom>(
         stream: _conversation.onChatroomUpdate,
         builder: (context, snapshot) {
-          String conversationTitle;
           FirechatChatroom chatroom = snapshot.data;
-
-          if (chatroom == null)
-            conversationTitle = "";
-          else {
-            conversationTitle = chatroom.title ?? "CONVERSATION";
-          }
-
-          return Scaffold(
-              appBar: AppBar(
-                title: Text(conversationTitle),
-                backgroundColor: Colors.teal,
-                leading: IconButton(
-                  icon: Icon(
-                    Icons.arrow_back,
-                    color: Colors.white,
-                  ),
-                  onPressed: Navigator.of(context).pop,
-                ),
-                actions: <Widget>[
-                  IconButton(
-                    icon: Icon(Icons.edit),
-                    color: Colors.white,
-                    onPressed: () => _presentNameEditTextField(chatroom.title),
-                  ),
-                ],
-              ),
-              body: Column(
-                children: <Widget>[
-                  Expanded(
-                    child: _messageListInGestureWrapper(),
-                  ),
-                  _messageBar()
-                ],
-              ));
+          return _buildPageWith(chatroom: chatroom);
         });
   }
 }

@@ -17,11 +17,18 @@ class FirechatConversation {
   FirechatMessage _mostRecentMessage;
 
   // TODO: set contacts stream
-  BehaviorSubject<List<FirechatUser>> _contactsController;
+
+  /// Map of all the [Stream] associated to the user they are listening to,
+  /// identified by their [DocumentReference].
+  Map<DocumentReference, Stream<DocumentSnapshot>> _contactsStreams = {};
+
+  BehaviorSubject<List<FirechatUser>> _contactsController =
+      BehaviorSubject<List<FirechatUser>>.seeded([]);
   Observable<List<FirechatUser>> get onContactsUpdate =>
       _contactsController.stream;
-  List<FirechatUser> _contactsList = [];
-  List<FirechatUser> get contactsList => contactsList;
+
+  Map<DocumentReference, FirechatUser> _contactsByReference = {};
+  List<FirechatUser> get contactsList => _contactsByReference.values.toList();
 
   BehaviorSubject<List<FirechatUser>> _composingUsersController =
       BehaviorSubject<List<FirechatUser>>.seeded([]);
@@ -184,7 +191,7 @@ class FirechatConversation {
     List<DocumentReference> otherPeopleComposing = _chatroom.composingPeopleRef
         .where((DocumentReference ref) => ref != _authorRef)
         .toList();
-    _composingUsersController.sink.add(_contactsList
+    _composingUsersController.sink.add(contactsList
         .where((FirechatUser user) =>
             otherPeopleComposing.contains(user.selfReference))
         .toList());
@@ -196,21 +203,21 @@ class FirechatConversation {
         return true;
       return (ref != _authorRef);
     }).toList();
-    _focusingUsersController.sink.add(_contactsList
+    _focusingUsersController.sink.add(contactsList
         .where(
             (FirechatUser user) => peopleFocusing.contains(user.selfReference))
         .toList());
   }
 
   //
-  // ########## CONTACTS INFORMATIONS
+  // ########## CONTACTS DATA
   //
 
   /// Based on the streamed messages, all the [FirechatUser] of the conversation
-  /// are fetched to be available.
+  /// are streamed to be available.
   ///
   /// Is called each time the list of streamed messages is updated.
-  Future<void> _updateContactsList() async {
+  void _updateContactsList() async {
     // The list of all the contacts that are senders of the currently streamed
     // messages.
     List<DocumentReference> listOfContacts = [];
@@ -222,24 +229,28 @@ class FirechatConversation {
 
     // The instances that are not to be streamed (not anymore among the
     // senders) are removed.
-    _contactsList.forEach((FirechatUser user) {
-      if (!listOfContacts.contains(user.selfReference))
-        _contactsList.remove(user);
+    _contactsStreams.forEach((DocumentReference contactRef, _) {
+      if (!listOfContacts.contains(contactRef)) {
+        _contactsStreams[contactRef].drain();
+        _contactsStreams.remove(contactRef);
+        _contactsByReference.remove(contactRef);
+      }
     });
 
-    // The instances that are not yet in _contactsList are fetched.
+    // The instances that are not yet in _contactsList are streamed.
     List<DocumentReference> contactsToFetchReferences = listOfContacts
-        .where((DocumentReference userRef) => _contactsList
-            .where((FirechatUser user) => user.selfReference == userRef)
-            .isEmpty)
+        .where((DocumentReference userRef) => _contactsStreams[userRef] == null)
         .toList();
-    List<Future<DocumentSnapshot>> fetchingTasks = contactsToFetchReferences
-        .map((DocumentReference ref) =>
-            FirestoreUserInterface().userFromReference(ref: ref))
-        .toList();
-    await Future.wait(fetchingTasks).then((List<DocumentSnapshot> snapshots) {
-      snapshots.forEach((DocumentSnapshot snap) =>
-          _contactsList.add(FirechatUser.fromMap(snap.data, snap.reference)));
+
+    contactsToFetchReferences.forEach((DocumentReference userToStreamRef) {
+      Stream<DocumentSnapshot> newStream =
+          FirestoreUserInterface().streamUserWith(ref: userToStreamRef);
+      newStream.listen((DocumentSnapshot snap) {
+        if (snap == null || !snap.exists) return;
+        FirechatUser user = FirechatUser.fromMap(snap.data, snap.reference);
+        _contactsByReference[user.selfReference] = user;
+        _contactsController.sink.add(contactsList);
+      });
     });
   }
 
@@ -247,7 +258,7 @@ class FirechatConversation {
   ///
   /// If none is found, null is returned.
   FirechatUser senderOf({@required FirechatMessage message}) {
-    return _contactsList.firstWhere(
+    return contactsList.firstWhere(
         (FirechatUser user) => user.selfReference == message.authorRef,
         orElse: () => null);
   }

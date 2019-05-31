@@ -6,6 +6,14 @@ class FirestoreUserInterface {
   String get _usersPath =>
       FirechatKit.instance.configuration.basePath + _usersCollectionName;
 
+  /// Returns the [Stream] for the [FirechatUser] related to the given [ref].
+  ///
+  /// If an error occurs or if [ref] is null, a [FirechatError] is thrown.
+  Stream<DocumentSnapshot> streamUserWith({@required DocumentReference ref}) {
+    if (ref == null) throw FirechatError.kNullDocumentReferenceError;
+    return ref.snapshots();
+  }
+
   /// Fetches and returns the snapshot of the FirechatUser designated by
   /// the given [firebaseUserId].
   ///
