@@ -355,7 +355,10 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
         if (chatroom == null)
           conversationTitle = "";
         else {
-          conversationTitle = chatroom.title ?? "CONVERSATION";
+          conversationTitle =
+              (chatroom.title != null && chatroom.title.isNotEmpty)
+                  ? chatroom.title
+                  : "CONVERSATION";
         }
 
         return Scaffold(

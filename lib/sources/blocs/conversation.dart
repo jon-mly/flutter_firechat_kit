@@ -16,8 +16,6 @@ class FirechatConversation {
 
   FirechatMessage _mostRecentMessage;
 
-  // TODO: set contacts stream
-
   /// Map of all the [Stream] associated to the user they are listening to,
   /// identified by their [DocumentReference].
   Map<DocumentReference, Stream<DocumentSnapshot>> _contactsStreams = {};
@@ -237,12 +235,12 @@ class FirechatConversation {
       }
     });
 
-    // The instances that are not yet in _contactsList are streamed.
-    List<DocumentReference> contactsToFetchReferences = listOfContacts
+    // The instances that are not yet in _contactsByReference are streamed.
+    List<DocumentReference> contactsToStream = listOfContacts
         .where((DocumentReference userRef) => _contactsStreams[userRef] == null)
         .toList();
 
-    contactsToFetchReferences.forEach((DocumentReference userToStreamRef) {
+    contactsToStream.forEach((DocumentReference userToStreamRef) {
       Stream<DocumentSnapshot> newStream =
           FirestoreUserInterface().streamUserWith(ref: userToStreamRef);
       newStream.listen((DocumentSnapshot snap) {

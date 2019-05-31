@@ -181,6 +181,15 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
     );
   }
 
+  Widget _buildPage() {
+    return StreamBuilder(
+      stream: FirechatKit.instance.chatrooms.onContactsUpdate,
+      builder: (BuildContext context, _) {
+        return _chatroomsList();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<FirechatUser>(
@@ -205,7 +214,7 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
                 )
               ],
             ),
-            body: _chatroomsList(),
+            body: _buildPage(),
             floatingActionButton: FloatingActionButton(
               child: Icon(
                 Icons.add,
