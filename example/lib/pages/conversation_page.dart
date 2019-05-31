@@ -118,6 +118,46 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
     });
   }
 
+  void _editName(String newName) {
+    _conversation.setChatroomName(name: newName);
+  }
+
+  //
+  // ############ ACTION DIALOG
+  //
+
+  Future<void> _presentNameEditTextField(String initialName) async {
+    TextEditingController _dialogController =
+        TextEditingController(text: initialName ?? "");
+    await showDialog<String>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            contentPadding: EdgeInsets.all(16.0),
+            content: TextField(
+              autofocus: true,
+              autocorrect: false,
+              controller: _dialogController,
+              decoration: InputDecoration(
+                  hintText: "Enter the name of the conversation"),
+            ),
+            actions: <Widget>[
+              IconButton(
+                icon: Icon(Icons.cancel, color: Colors.teal),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              IconButton(
+                icon: Icon(Icons.open_in_new, color: Colors.teal),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _editName(_dialogController.text);
+                },
+              )
+            ],
+          );
+        });
+  }
+
   //
   // ########## SCROLL CONTROLLER & PAGNIATION
   //
@@ -256,44 +296,40 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
   }
 
   Widget _messagesListAndTypingInfos() {
-    return StreamBuilder<Object>(
-        stream: _conversation.onChatroomUpdate,
-        builder: (context, snapshot) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Expanded(
-                child: _messagesList(),
-              ),
-              StreamBuilder(
-                stream: _conversation.onFocusingUsersUpdate,
-                builder: (BuildContext context,
-                    AsyncSnapshot<List<FirechatUser>> snap) {
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: (snap.hasData)
-                        ? Text(
-                            "${snap.data.map((FirechatUser user) => user.displayName ?? user.userId)}")
-                        : Container(),
-                  );
-                },
-              ),
-              StreamBuilder(
-                stream: _conversation.onComposingUsersUpdate,
-                builder: (BuildContext context,
-                    AsyncSnapshot<List<FirechatUser>> snap) {
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: (snap.hasData && snap.data.isNotEmpty)
-                        ? Text(
-                            "Typing : ${snap.data.map((FirechatUser user) => user.displayName ?? user.userId)}")
-                        : Container(),
-                  );
-                },
-              )
-            ],
-          );
-        });
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Expanded(
+          child: _messagesList(),
+        ),
+        StreamBuilder(
+          stream: _conversation.onFocusingUsersUpdate,
+          builder:
+              (BuildContext context, AsyncSnapshot<List<FirechatUser>> snap) {
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: (snap.hasData)
+                  ? Text(
+                      "${snap.data.map((FirechatUser user) => user.displayName ?? user.userId)}")
+                  : Container(),
+            );
+          },
+        ),
+        StreamBuilder(
+          stream: _conversation.onComposingUsersUpdate,
+          builder:
+              (BuildContext context, AsyncSnapshot<List<FirechatUser>> snap) {
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: (snap.hasData && snap.data.isNotEmpty)
+                  ? Text(
+                      "Typing : ${snap.data.map((FirechatUser user) => user.displayName ?? user.userId)}")
+                  : Container(),
+            );
+          },
+        )
+      ],
+    );
   }
 
   Widget _messageListInGestureWrapper() {
@@ -310,25 +346,45 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: Text("Conversation"),
-          backgroundColor: Colors.teal,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back,
-              color: Colors.white,
-            ),
-            onPressed: Navigator.of(context).pop,
-          ),
-        ),
-        body: Column(
-          children: <Widget>[
-            Expanded(
-              child: _messageListInGestureWrapper(),
-            ),
-            _messageBar()
-          ],
-        ));
+    return StreamBuilder<FirechatChatroom>(
+        stream: _conversation.onChatroomUpdate,
+        builder: (context, snapshot) {
+          String conversationTitle;
+          FirechatChatroom chatroom = snapshot.data;
+
+          if (chatroom == null)
+            conversationTitle = "";
+          else {
+            conversationTitle = chatroom.title ?? "CONVERSATION";
+          }
+
+          return Scaffold(
+              appBar: AppBar(
+                title: Text(conversationTitle),
+                backgroundColor: Colors.teal,
+                leading: IconButton(
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                  ),
+                  onPressed: Navigator.of(context).pop,
+                ),
+                actions: <Widget>[
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    color: Colors.white,
+                    onPressed: () => _presentNameEditTextField(chatroom.title),
+                  ),
+                ],
+              ),
+              body: Column(
+                children: <Widget>[
+                  Expanded(
+                    child: _messageListInGestureWrapper(),
+                  ),
+                  _messageBar()
+                ],
+              ));
+        });
   }
 }

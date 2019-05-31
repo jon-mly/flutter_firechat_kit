@@ -232,6 +232,22 @@ class FirestoreChatroomInterface {
     });
   }
 
+  /// Updates the [chatroom.title] field on Firestore.
+  ///
+  /// In an error occurs, a [FirechatError] is thrown.
+  Future<void> updateChatroomName(
+      {@required String name, @required DocumentReference chatroomRef}) async {
+    if (chatroomRef == null) throw FirechatError.kNullDocumentReferenceError;
+
+    await Firestore.instance
+        .runTransaction(
+            (_) => chatroomRef.updateData({FirechatChatroomKeys.kTitle: name}))
+        .catchError((e) {
+      print(e);
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
+
   //
   // ########## COMPOSING
   //

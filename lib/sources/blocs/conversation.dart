@@ -16,10 +16,12 @@ class FirechatConversation {
 
   FirechatMessage _mostRecentMessage;
 
+  // TODO: set contacts stream
   BehaviorSubject<List<FirechatUser>> _contactsController;
   Observable<List<FirechatUser>> get onContactsUpdate =>
       _contactsController.stream;
   List<FirechatUser> _contactsList = [];
+  List<FirechatUser> get contactsList => contactsList;
 
   BehaviorSubject<List<FirechatUser>> _composingUsersController =
       BehaviorSubject<List<FirechatUser>>.seeded([]);
@@ -50,6 +52,10 @@ class FirechatConversation {
       _listenersMessagesList = {};
   List<FirechatMessage> get _allStreamedMessages =>
       _listenersMessagesList.values.expand((x) => x).toList();
+
+  // ###########################
+  // METHODS
+  // ###########################
 
   //
   // ########### CONSTRUCTORS
@@ -99,8 +105,8 @@ class FirechatConversation {
   /// To request older messages, call [requestOlderMessages].
   Future<void> _streamChatroomAndFirstMessages() async {
     // Gets and listens to the stream of the Chatroom.
-    FirestoreChatroomInterface().chatroomStreamFor(
-            chatroomRef: _chatroom.selfReference)
+    FirestoreChatroomInterface()
+        .chatroomStreamFor(chatroomRef: _chatroom.selfReference)
         .listen((DocumentSnapshot snap) {
       if (snap == null || !snap.exists) return null;
 
@@ -264,7 +270,8 @@ class FirechatConversation {
         (!isFocusing && !_chatroom.focusingPeopleRef.contains(_authorRef))))
       return;
 
-    await FirestoreChatroomInterface().setUserFocusing(
+    await FirestoreChatroomInterface()
+        .setUserFocusing(
             chatroom: _chatroom,
             userReference: _authorRef,
             isFocusing: isFocusing)
@@ -286,7 +293,8 @@ class FirechatConversation {
         (!isComposing && !_chatroom.composingPeopleRef.contains(_authorRef))))
       return;
 
-    await FirestoreChatroomInterface().setUserIsComposing(
+    await FirestoreChatroomInterface()
+        .setUserIsComposing(
             chatroom: _chatroom,
             userReference: _authorRef,
             isComposing: isComposing)
@@ -327,8 +335,8 @@ class FirechatConversation {
         date: DateTime.now());
 
     await FirestoreMessageInterface().send(messageToSend);
-    await FirestoreChatroomInterface().updateLastMessageFor(
-        chatroom: _chatroom, message: messageToSend);
+    await FirestoreChatroomInterface()
+        .updateLastMessageFor(chatroom: _chatroom, message: messageToSend);
   }
 
   /// Deletes the given [message].
@@ -348,7 +356,8 @@ class FirechatConversation {
   /// If an error occurs, a [FirechatError] is thrown.
   Future<void> currentUserReadAllMessages() async {
     if (_mostRecentMessage == null) return;
-    FirestoreChatroomInterface().setLastReadMessageForUser(
+    FirestoreChatroomInterface()
+        .setLastReadMessageForUser(
             userRef: _authorRef,
             chatroom: _chatroom,
             message: _mostRecentMessage)
@@ -365,9 +374,9 @@ class FirechatConversation {
   ///
   /// If an error occurs, a [FirechatError] is thrown.
   Future<void> _createConversationAndStream() async {
-    _chatroom =
-        await FirestoreChatroomInterface().exportToFirestore(chatroom: _chatroom)
-            .catchError((e) {
+    _chatroom = await FirestoreChatroomInterface()
+        .exportToFirestore(chatroom: _chatroom)
+        .catchError((e) {
       if (e is FirechatError) throw e;
       throw FirechatError.kFirestoreChatroomUploadError;
     });
@@ -435,9 +444,25 @@ class FirechatConversation {
   ///
   /// If an error occurs, a [FirechatError] is thrown.
   Future<void> setChatroomDetails({@required Map<String, dynamic> map}) async {
-    _chatroom.details = map;
+    await FirestoreChatroomInterface()
+        .updateChatroomDetails(chatroom: _chatroom)
+        .catchError((e) {
+      if (e is FirechatError) throw e;
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
 
-    await FirestoreChatroomInterface().updateChatroomDetails(chatroom: _chatroom)
+  //
+  // ########## CONVERSATION NAME
+  //
+
+  /// Sets the given [name] as the [_chatroom.title] and uploads the field to
+  /// Firestore.
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  Future<void> setChatroomName({@required String name}) async {
+    await FirestoreChatroomInterface()
+        .updateChatroomName(name: name, chatroomRef: _chatroom.selfReference)
         .catchError((e) {
       if (e is FirechatError) throw e;
       throw FirechatError.kFirestoreChatroomUploadError;

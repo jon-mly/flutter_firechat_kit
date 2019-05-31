@@ -153,10 +153,13 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
                 .lastMessageFor(chatroom: chatroom);
             bool isUpToDate = !FirechatKit.instance.chatrooms
                 .currentUserHasUnreadIn(chatroom: chatroom);
+            String title = (chatroom.title != null && chatroom.title.isNotEmpty)
+                ? chatroom.title
+                : "${contacts.map((contact) => contact.displayName ?? contact.userId)}";
 
             return ListTile(
               title: Text(
-                "${contacts.map((contact) => contact.displayName ?? contact.userId)}",
+                title,
                 style: TextStyle(
                     fontWeight:
                         (isUpToDate) ? FontWeight.normal : FontWeight.bold),
