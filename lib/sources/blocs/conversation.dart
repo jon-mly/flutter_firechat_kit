@@ -383,6 +383,8 @@ class FirechatConversation {
   Future<void> _markMessagesAsReadIfFocusing() async {
     if (!_chatroom.focusingPeopleRef.contains(_authorRef)) return;
 
+    print("Marking as up to date in the conversation");
+
     await currentUserReadAllMessages();
   }
 

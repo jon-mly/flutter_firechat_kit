@@ -37,6 +37,8 @@ class FirechatError extends Error {
       "An error has occured with Firestore while trying to delete a message.");
   static final FirechatError kMessageNotFoundError = FirechatError(
       "The DocumentReference of the given Message does not lead to anything in Firestore.");
+  static final FirechatError kMessageFetchError = FirechatError(
+      "An error has occured with Firestore while trying to get a FirechatMessage.");
   static final FirechatError kNullUserId =
       FirechatError("The given user Id is null.");
   static final FirechatError kNullDocumentReferenceError = FirechatError(

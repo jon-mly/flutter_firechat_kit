@@ -43,6 +43,9 @@ class FirechatChatroom {
   /// The [Map] for the [DocumentReference] of the last [FirechatMessage] read
   /// by each of the [FirechatUser], identified by the [DocumentReference]
   /// of their related document in Firestore.
+  ///
+  /// Keys : users references
+  /// Values : messages references
   Map<DocumentReference, DocumentReference> lastMessagesRead;
 
   /// [Map] for custom details than can de added to the [FirechatChatroom].
@@ -101,7 +104,7 @@ class FirechatChatroom {
     lastMessagesRead = {};
     readByMap.forEach((String key, DocumentReference messageRef) {
       DocumentReference userRef = Firestore.instance.document(
-          "/users/" + key.replaceFirst(FirechatChatroomKeys.kReadByPrefix, ""));
+          "users/" + key.replaceFirst(FirechatChatroomKeys.kReadByPrefix, ""));
       lastMessagesRead[userRef] = messageRef;
     });
   }

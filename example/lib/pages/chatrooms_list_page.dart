@@ -107,16 +107,32 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
           return Center(child: Text("No chatrooms"));
 
         List<FirechatChatroom> chatrooms = snapshot.data;
+
         return ListView.separated(
           itemCount: chatrooms.length,
           itemBuilder: (BuildContext context, int index) {
             FirechatChatroom chatroom = chatrooms[index];
             List<FirechatUser> contacts = FirechatKit.instance.chatrooms
                 .otherPeopleIn(chatroom: chatroom);
+            FirechatMessage lastMessage = FirechatKit.instance.chatrooms
+                .lastMessageFor(chatroom: chatroom);
+            bool isUpToDate = !FirechatKit.instance.chatrooms
+                .currentUserHasUnreadIn(chatroom: chatroom);
+
             return ListTile(
               title: Text(
-                  "${contacts.map((contact) => contact?.displayName ?? contact.userId)}"),
+                "${contacts.map((contact) => contact?.displayName ?? contact.userId)}",
+                style: TextStyle(
+                    fontWeight:
+                        (isUpToDate) ? FontWeight.normal : FontWeight.bold),
+              ),
               onTap: () => _getSelectedConversation(chatroom: chatroom),
+              subtitle: Text(
+                lastMessage?.content,
+                style: TextStyle(
+                    fontWeight:
+                        (isUpToDate) ? FontWeight.normal : FontWeight.bold),
+              ),
             );
           },
           separatorBuilder: (_, int index) => Divider(

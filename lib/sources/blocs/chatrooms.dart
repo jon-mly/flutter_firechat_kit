@@ -102,6 +102,7 @@ class FirechatChatrooms {
         chatroomsToSort.addAll(chatrooms));
 
     await _updateUsersByChatroomMapUsing(chatrooms: chatroomsToSort);
+    await _updateLastMessagesByChatroomUsing(chatrooms: chatroomsToSort);
 
     _chatroomsController.add(_orderedByDate(list: chatroomsToSort));
   }
@@ -151,6 +152,7 @@ class FirechatChatrooms {
   // ########## CHATROOM RELATED DATA FETCHING
   //
 
+  /// Updates [_usersByChatroom] for the currently streamed chatrooms.
   Future<void> _updateUsersByChatroomMapUsing(
       {@required List<FirechatChatroom> chatrooms}) async {
     if (_usersByChatroom == null) _usersByChatroom = {};
@@ -175,6 +177,7 @@ class FirechatChatrooms {
       List<DocumentReference> contactsRef = chatroom.peopleRef
           .where((DocumentReference ref) => ref != userDocumentReference)
           .toList();
+
       List<FirechatUser> users = [];
       await Future.forEach(contactsRef, (DocumentReference contactRef) async {
         FirechatUser user =
@@ -184,6 +187,40 @@ class FirechatChatrooms {
         users.add(user);
       });
       _usersByChatroom[chatroom.selfReference] = users;
+    });
+  }
+
+  /// Updates [_lastMessagesByChatroom] for the currently streamed chatrooms.
+  Future<void> _updateLastMessagesByChatroomUsing(
+      {@required List<FirechatChatroom> chatrooms}) async {
+    if (_lastMessagesByChatroom == null) _lastMessagesByChatroom = {};
+
+    // Removing the entries for the conversations that are not in the list, that
+    // is not streamed anymore.
+    _lastMessagesByChatroom.removeWhere((DocumentReference chatroomRef, _) =>
+        !chatrooms.any((FirechatChatroom chatroom) =>
+            chatroom.selfReference == chatroomRef));
+
+    // An update is required when the chatroom has no reference in
+    // _lastMessagesByChatroom or when the related reference is not the same
+    // as [chatroom.lastMessageRef].
+    List<FirechatChatroom> chatroomsWithUpdateRequired = chatrooms
+        .map((FirechatChatroom chatroom) {
+          if (_lastMessagesByChatroom[chatroom.selfReference] == null)
+            return chatroom;
+          if (_lastMessagesByChatroom[chatroom.selfReference].selfReference !=
+              chatroom.lastMessageRef) return chatroom;
+          return null;
+        })
+        .where((FirechatChatroom item) => item != null)
+        .toList();
+
+    await Future.forEach(chatroomsWithUpdateRequired,
+        (FirechatChatroom chatroom) async {
+      if (chatroom.lastMessageRef == null) return null;
+      FirechatMessage message = await FirestoreMessageInterface.messageFor(
+          reference: chatroom.lastMessageRef);
+      _lastMessagesByChatroom[chatroom.selfReference] = message;
     });
   }
 
@@ -206,6 +243,21 @@ class FirechatChatrooms {
   /// If none is found, an empty list is returned.
   List<FirechatUser> otherPeopleIn({@required FirechatChatroom chatroom}) {
     return _usersByChatroom[chatroom.selfReference] ?? [];
+  }
+
+  /// Indicates if the last message of the [chatroom] has not been read yet
+  /// by the current user.
+  bool currentUserHasUnreadIn({@required FirechatChatroom chatroom}) {
+    // Firechat follows a principle saying that if a given message is
+    // read, all the previous ones are read.
+    // This way, if the last message of the given chatroom is read by the
+    // current user, they are up to date.
+    //
+    // First case : no reference of the current user : they have read no
+    // messages.
+    if (chatroom.lastMessagesRead[userDocumentReference] == null) return false;
+    return (chatroom.lastMessagesRead[userDocumentReference] !=
+        chatroom.lastMessageRef);
   }
 
   //

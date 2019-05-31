@@ -126,6 +126,28 @@ class FirestoreMessageInterface {
   }
 
   //
+  // ######## SINGLE MESSAGE FETCH
+  //
+
+  /// Fetches and return the [FirechatMessage] related to the given [reference].
+  ///
+  /// If an error occurs or if the [reference] is null, a [FirechatError] is
+  /// thrown.
+  static Future<FirechatMessage> messageFor(
+      {@required DocumentReference reference}) async {
+    if (reference == null) throw FirechatError.kNullDocumentReferenceError;
+    return await reference.get().then((DocumentSnapshot snap) {
+      if (snap == null || !snap.exists)
+        throw FirechatError.kMessageNotFoundError;
+      return FirechatMessage.fromMap(snap.data, snap.reference);
+    }).catchError((e) {
+      print(e);
+      if (e is FirechatError) throw e;
+      throw FirechatError.kMessageFetchError;
+    });
+  }
+
+  //
   // ######## PUBLICATION & DELETION
   //
 
