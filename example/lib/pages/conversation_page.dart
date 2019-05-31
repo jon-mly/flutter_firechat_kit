@@ -265,28 +265,28 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
               Expanded(
                 child: _messagesList(),
               ),
-              // TODO: refactor this indicator
               StreamBuilder(
                 stream: _conversation.onFocusingUsersUpdate,
-                builder:
-                    (BuildContext context, AsyncSnapshot<List<String>> snap) {
+                builder: (BuildContext context,
+                    AsyncSnapshot<List<FirechatUser>> snap) {
                   return Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: (snap.hasData)
-                        ? Text("${snap.data.length} people active")
+                        ? Text(
+                            "${snap.data.map((FirechatUser user) => user.displayName ?? user.userId)}")
                         : Container(),
                   );
                 },
               ),
-              // TODO: refactor this indicator
               StreamBuilder(
                 stream: _conversation.onComposingUsersUpdate,
-                builder:
-                    (BuildContext context, AsyncSnapshot<List<String>> snap) {
+                builder: (BuildContext context,
+                    AsyncSnapshot<List<FirechatUser>> snap) {
                   return Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: (snap.hasData && snap.data.isNotEmpty)
-                        ? Text("Someone is typing...")
+                        ? Text(
+                            "Typing : ${snap.data.map((FirechatUser user) => user.displayName ?? user.userId)}")
                         : Container(),
                   );
                 },
