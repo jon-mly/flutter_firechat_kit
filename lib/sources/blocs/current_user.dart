@@ -11,6 +11,7 @@ class FirechatCurrentUser {
 
   FirechatCurrentUser({@required FirechatUser user}) {
     _user = user;
+    _currentUserController.sink.add(user);
     this._create();
   }
 
@@ -42,6 +43,6 @@ class FirechatCurrentUser {
     FirechatUser mostRecentData = _user;
     if (avatarUrl != null) mostRecentData.avatarUrl = avatarUrl;
     if (displayName != null) mostRecentData.displayName = displayName;
-    // TODO: upload the changes to Firestore.
+    FirestoreUserInterface.uploadFirechatUser(mostRecentData);
   }
 }

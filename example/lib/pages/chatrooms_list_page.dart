@@ -55,6 +55,10 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
     _navigateToConversationPage();
   }
 
+  void _editName(String newName) {
+    FirechatKit.instance.currentUser.set(displayName: newName);
+  }
+
   //
   // ############ ACTION DIALOG
   //
@@ -83,6 +87,37 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
                 onPressed: () {
                   Navigator.of(context).pop();
                   _getConversationWithUser(id: _dialogController.text);
+                },
+              )
+            ],
+          );
+        });
+  }
+
+  Future<void> _presentNameEditTextField() async {
+    TextEditingController _dialogController = TextEditingController(
+        text: FirechatKit.instance.currentUser.user.displayName ?? "");
+    await showDialog<String>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            contentPadding: EdgeInsets.all(16.0),
+            content: TextField(
+              autofocus: true,
+              autocorrect: false,
+              controller: _dialogController,
+              decoration: InputDecoration(hintText: "Enter your display name"),
+            ),
+            actions: <Widget>[
+              IconButton(
+                icon: Icon(Icons.cancel, color: Colors.teal),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              IconButton(
+                icon: Icon(Icons.open_in_new, color: Colors.teal),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _editName(_dialogController.text);
                 },
               )
             ],
@@ -121,7 +156,7 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
 
             return ListTile(
               title: Text(
-                "${contacts.map((contact) => contact?.displayName ?? contact.userId)}",
+                "${contacts.map((contact) => contact.displayName ?? contact.userId)}",
                 style: TextStyle(
                     fontWeight:
                         (isUpToDate) ? FontWeight.normal : FontWeight.bold),
@@ -145,26 +180,36 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("FirechatKit Example"),
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.teal,
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.exit_to_app),
-            color: Colors.white,
-            onPressed: _logout,
-          )
-        ],
-      ),
-      body: _chatroomsList(),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(
-          Icons.add,
-        ),
-        onPressed: _presentSearchPeopleTextField,
-      ),
-    );
+    return StreamBuilder<FirechatUser>(
+        stream: FirechatKit.instance.currentUser.onUserUpdate,
+        builder: (context, snapshot) {
+          FirechatUser self = snapshot.data;
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(self?.displayName ?? self?.userId ?? ""),
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.teal,
+              actions: <Widget>[
+                IconButton(
+                  icon: Icon(Icons.edit),
+                  color: Colors.white,
+                  onPressed: _presentNameEditTextField,
+                ),
+                IconButton(
+                  icon: Icon(Icons.exit_to_app),
+                  color: Colors.white,
+                  onPressed: _logout,
+                )
+              ],
+            ),
+            body: _chatroomsList(),
+            floatingActionButton: FloatingActionButton(
+              child: Icon(
+                Icons.add,
+              ),
+              onPressed: _presentSearchPeopleTextField,
+            ),
+          );
+        });
   }
 }
