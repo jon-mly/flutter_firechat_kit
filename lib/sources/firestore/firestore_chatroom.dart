@@ -348,9 +348,6 @@ class FirestoreChatroomInterface {
 
     chatroom.lastMessagesRead[userRef] = message.selfReference;
 
-    print(chatroom.entryReadBy(
-        userRef: userRef, messageRef: message.selfReference));
-
     await Firestore.instance
         .runTransaction((_) => chatroom.selfReference.updateData(chatroom
             .entryReadBy(userRef: userRef, messageRef: message.selfReference)))

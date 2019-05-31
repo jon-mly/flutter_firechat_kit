@@ -16,26 +16,29 @@ class FirechatConversation {
 
   FirechatMessage _mostRecentMessage;
 
-  // TODO: replace with FirechatUser
-  BehaviorSubject<List<String>> _composingUsersController =
-      BehaviorSubject<List<String>>.seeded([]);
+  BehaviorSubject<List<FirechatUser>> _contactsController;
+  Observable<List<FirechatUser>> get onContactsUpdate =>
+      _contactsController.stream;
+  List<FirechatUser> _contactsList = [];
+
+  BehaviorSubject<List<FirechatUser>> _composingUsersController =
+      BehaviorSubject<List<FirechatUser>>.seeded([]);
 
   /// The [Stream] for the list of users that are currently typing a message.
   ///
   /// Note : this list excludes the current user.
-  Observable<List<String>> get onComposingUsersUpdate =>
+  Observable<List<FirechatUser>> get onComposingUsersUpdate =>
       _composingUsersController.stream;
 
-  // TODO: replace with FirechatUser
-  BehaviorSubject<List<String>> _focusingUsersController =
-      BehaviorSubject<List<String>>.seeded([]);
+  BehaviorSubject<List<FirechatUser>> _focusingUsersController =
+      BehaviorSubject<List<FirechatUser>>.seeded([]);
   // TODO: add a Configuration item to set if the current user should be counted or not as a focusing user in this stream
 
   /// The [Stream] for the list of users that are currently in the chatroom.
   ///
   /// Note : this list excludes the current user by default, but it can be
   /// changed in the configuration of [FirechatKit].
-  Observable<List<String>> get onFocusingUsersUpdate =>
+  Observable<List<FirechatUser>> get onFocusingUsersUpdate =>
       _focusingUsersController.stream;
 
   /// The list of all the [Stream] currently listening
@@ -83,6 +86,8 @@ class FirechatConversation {
     _composingUsersController.close();
     await _focusingUsersController.drain();
     _focusingUsersController.close();
+    await _contactsController.drain();
+    _contactsController.close();
   }
 
   //
@@ -104,23 +109,7 @@ class FirechatConversation {
       _chatroom = FirechatChatroom.fromMap(snap.data, snap.reference);
       _chatroomController.sink.add(_chatroom);
 
-      // Composing users Stream update
-      // TODO: replace with FirechatUser
-      List<DocumentReference> otherPeopleComposing = _chatroom
-          .composingPeopleRef
-          .where((DocumentReference ref) => ref != _authorRef)
-          .toList();
-      _composingUsersController.sink
-          .add(List<String>.filled(otherPeopleComposing.length ?? 0, "People"));
-
-      // Focusing users Stream update
-      // TODO: replace with FirechatUser
-      // TODO: handle configuration item to know if the current user should be excluded from this list.
-      List<DocumentReference> peopleFocusing = _chatroom.focusingPeopleRef
-          .where((DocumentReference ref) => ref != _authorRef)
-          .toList();
-      _focusingUsersController.sink
-          .add(List<String>.filled(peopleFocusing.length ?? 0, "People"));
+      _updateComposingAndFocusingLists();
     });
 
     // Gets and listens to the stream of messages related to the Chatroom.
@@ -176,10 +165,85 @@ class FirechatConversation {
 
     _mostRecentMessage = orderedMessages.first;
 
+    await _updateContactsList();
+
+    _updateComposingAndFocusingLists();
+
     _messagesController.add(orderedMessages);
 
     // TODO: add a condition that checks the configuration
     await _markMessagesAsReadIfFocusing();
+  }
+
+  void _updateComposingAndFocusingLists() {
+    // Composing users Stream update
+    List<DocumentReference> otherPeopleComposing = _chatroom.composingPeopleRef
+        .where((DocumentReference ref) => ref != _authorRef)
+        .toList();
+    _composingUsersController.sink.add(_contactsList
+        .where((FirechatUser user) =>
+            otherPeopleComposing.contains(user.selfReference))
+        .toList());
+
+    // Focusing users Stream update
+    // TODO: handle configuration item to know if the current user should be excluded from this list.
+    List<DocumentReference> peopleFocusing = _chatroom.focusingPeopleRef
+        .where((DocumentReference ref) => ref != _authorRef)
+        .toList();
+    _focusingUsersController.sink.add(_contactsList
+        .where(
+            (FirechatUser user) => peopleFocusing.contains(user.selfReference))
+        .toList());
+  }
+
+  //
+  // ########## CONTACTS INFORMATIONS
+  //
+
+  /// Based on the streamed messages, all the [FirechatUser] of the conversation
+  /// are fetched to be available.
+  ///
+  /// Is called each time the list of streamed messages is updated.
+  Future<void> _updateContactsList() async {
+    // The list of all the contacts that are senders of the currently streamed
+    // messages.
+    List<DocumentReference> listOfContacts = [];
+    _allStreamedMessages.forEach((FirechatMessage message) {
+      if (message.authorRef != null &&
+          !listOfContacts.contains(message.authorRef))
+        listOfContacts.add(message.authorRef);
+    });
+
+    // The instances that are not to be streamed (not anymore among the
+    // senders) are removed.
+    _contactsList.forEach((FirechatUser user) {
+      if (!listOfContacts.contains(user.selfReference))
+        _contactsList.remove(user);
+    });
+
+    // The instances that are not yet in _contactsList are fetched.
+    List<DocumentReference> contactsToFetchReferences = listOfContacts
+        .where((DocumentReference userRef) => _contactsList
+            .where((FirechatUser user) => user.selfReference == userRef)
+            .isEmpty)
+        .toList();
+    List<Future<DocumentSnapshot>> fetchingTasks = contactsToFetchReferences
+        .map((DocumentReference ref) =>
+            FirestoreUserInterface.userFromReference(ref: ref))
+        .toList();
+    await Future.wait(fetchingTasks).then((List<DocumentSnapshot> snapshots) {
+      snapshots.forEach((DocumentSnapshot snap) =>
+          _contactsList.add(FirechatUser.fromMap(snap.data, snap.reference)));
+    });
+  }
+
+  /// Returns the [FirechatUser] who sent the [message].
+  ///
+  /// If none is found, null is returned.
+  FirechatUser senderOf({@required FirechatMessage message}) {
+    return _contactsList.firstWhere(
+        (FirechatUser user) => user.selfReference == message.authorRef,
+        orElse: () => null);
   }
 
   //
