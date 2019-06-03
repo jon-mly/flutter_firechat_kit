@@ -50,8 +50,27 @@ class FirechatUser {
     this.displayName = map[FirechatUserKeys.kDisplayName];
   }
 
+  FirechatUser.fromLocalStorage(Map<String, dynamic> map) {
+    this.selfReference = Firestore.instance.document(map["path"]);
+    this.userId = map[FirechatUserKeys.kUserId];
+    this.firebaseUserId = map[FirechatUserKeys.kFirebaseUserId];
+    this.avatarUrl = map[FirechatUserKeys.kAvatarUrl];
+    this.displayName = map[FirechatUserKeys.kDisplayName];
+  }
+
   Map<String, dynamic> toMap() {
     Map<String, dynamic> map = {
+      FirechatUserKeys.kAvatarUrl: this.avatarUrl,
+      FirechatUserKeys.kUserId: this.userId,
+      FirechatUserKeys.kFirebaseUserId: this.firebaseUserId,
+      FirechatUserKeys.kDisplayName: this.displayName
+    };
+    return map;
+  }
+
+  Map<String, dynamic> toLocalStorage() {
+    Map<String, dynamic> map = {
+      "path": this.selfReference.path,
       FirechatUserKeys.kAvatarUrl: this.avatarUrl,
       FirechatUserKeys.kUserId: this.userId,
       FirechatUserKeys.kFirebaseUserId: this.firebaseUserId,
