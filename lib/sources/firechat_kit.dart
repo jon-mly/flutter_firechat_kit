@@ -1,7 +1,9 @@
 part of firechat_kit;
 
 class FirechatKit {
-  static final FirechatKit instance = FirechatKit();
+  static final FirechatKit instance = FirechatKit._();
+
+  FirechatKit._();
 
   static const MethodChannel _channel = const MethodChannel('firechat_kit');
 
@@ -32,6 +34,7 @@ class FirechatKit {
       _configuration = FirechatKitConfiguration.defaultConfiguration();
     else
       _configuration = configuration;
+    Firestore.instance.settings(persistenceEnabled: true);
     _isConfigured = true;
   }
 

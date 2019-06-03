@@ -105,7 +105,7 @@ class FirestoreUserInterface {
   Future<FirechatUser> uploadFirechatUser(FirechatUser user) async {
     if (user.selfReference == null)
       user.selfReference = Firestore.instance.collection(_usersPath).document();
-    await user.selfReference.setData(user.toMap()).catchError((e) {
+    user.selfReference.setData(user.toMap()).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreUserUploadError;
     });
@@ -125,7 +125,7 @@ class FirestoreUserInterface {
   Future<FirechatUser> updateFirebaseIdOf(
       FirechatUser user, String newId) async {
     user.firebaseUserId = newId;
-    await user.selfReference
+    user.selfReference
         .updateData({FirechatUserKeys.kFirebaseUserId: newId}).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreUserUpdateError;
