@@ -159,9 +159,7 @@ class FirestoreMessageInterface {
     if (message.selfReference == null)
       message.selfReference =
           message.chatroomRef.collection(_messagesPath).document();
-    await Firestore.instance
-        .runTransaction((_) => message.selfReference.setData(message.toMap()))
-        .catchError((e) {
+    message.selfReference.setData(message.toMap()).catchError((e) {
       print(e);
       throw FirechatError.kMessageSendingError;
     });

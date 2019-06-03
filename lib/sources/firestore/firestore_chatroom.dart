@@ -204,9 +204,7 @@ class FirestoreChatroomInterface {
     if (chatroom.selfReference == null)
       chatroom.selfReference =
           Firestore.instance.collection(_chatroomsPath).document();
-    await Firestore.instance
-        .runTransaction((_) => chatroom.selfReference.setData(chatroom.toMap()))
-        .catchError((e) {
+    chatroom.selfReference.setData(chatroom.toMap()).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
     });
@@ -223,10 +221,8 @@ class FirestoreChatroomInterface {
     if (chatroom.selfReference == null)
       throw FirechatError.kNullDocumentReferenceError;
 
-    await Firestore.instance
-        .runTransaction((_) => chatroom.selfReference
-            .updateData({FirechatChatroomKeys.kDetails: chatroom.details}))
-        .catchError((e) {
+    chatroom.selfReference.updateData(
+        {FirechatChatroomKeys.kDetails: chatroom.details}).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
     });
@@ -239,10 +235,7 @@ class FirestoreChatroomInterface {
       {@required String name, @required DocumentReference chatroomRef}) async {
     if (chatroomRef == null) throw FirechatError.kNullDocumentReferenceError;
 
-    await Firestore.instance
-        .runTransaction(
-            (_) => chatroomRef.updateData({FirechatChatroomKeys.kTitle: name}))
-        .catchError((e) {
+    chatroomRef.updateData({FirechatChatroomKeys.kTitle: name}).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
     });
@@ -273,12 +266,9 @@ class FirestoreChatroomInterface {
           List<DocumentReference>.from(chatroom.composingPeopleRef)
             ..remove(userReference);
 
-    await Firestore.instance
-        .runTransaction((_) => chatroom.selfReference.updateData({
-              FirechatChatroomKeys.kComposingPeopleRef:
-                  chatroom.composingPeopleRef
-            }))
-        .catchError((e) {
+    chatroom.selfReference.updateData({
+      FirechatChatroomKeys.kComposingPeopleRef: chatroom.composingPeopleRef
+    }).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
     });
@@ -309,12 +299,9 @@ class FirestoreChatroomInterface {
           List<DocumentReference>.from(chatroom.focusingPeopleRef)
             ..remove(userReference);
 
-    await Firestore.instance
-        .runTransaction((_) => chatroom.selfReference.updateData({
-              FirechatChatroomKeys.kFocusingPeopleRef:
-                  chatroom.focusingPeopleRef
-            }))
-        .catchError((e) {
+    chatroom.selfReference.updateData({
+      FirechatChatroomKeys.kFocusingPeopleRef: chatroom.focusingPeopleRef
+    }).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
     });
@@ -334,13 +321,11 @@ class FirestoreChatroomInterface {
     if (chatroom.selfReference == null)
       throw FirechatError.kNullDocumentReferenceError;
 
-    await Firestore.instance
-        .runTransaction((_) => chatroom.selfReference.updateData({
-              FirechatChatroomKeys.kLastMessageDate:
-                  message.date.millisecondsSinceEpoch,
-              FirechatChatroomKeys.kLastMessageRef: message.selfReference
-            }))
-        .catchError((e) {
+    chatroom.selfReference.updateData({
+      FirechatChatroomKeys.kLastMessageDate:
+          message.date.millisecondsSinceEpoch,
+      FirechatChatroomKeys.kLastMessageRef: message.selfReference
+    }).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
     });
@@ -369,9 +354,9 @@ class FirestoreChatroomInterface {
 
     chatroom.lastMessagesRead[userRef] = message.selfReference;
 
-    await Firestore.instance
-        .runTransaction((_) => chatroom.selfReference.updateData(chatroom
-            .entryReadBy(userRef: userRef, messageRef: message.selfReference)))
+    chatroom.selfReference
+        .updateData(chatroom.entryReadBy(
+            userRef: userRef, messageRef: message.selfReference))
         .catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
