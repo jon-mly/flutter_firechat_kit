@@ -52,7 +52,7 @@ class FirechatKitConfiguration {
       {this.basePath = "",
       this.focusingUserEnabled = true,
       this.readReceiptsEnabled = true,
-      this.typingIndicatorEnabled = ture,
+      this.typingIndicatorEnabled = true,
       this.automaticallyReadMessages = true,
       this.countCurrentUSerInFocusList = false})
       : assert(basePath.split("/").length % 2 == 0);

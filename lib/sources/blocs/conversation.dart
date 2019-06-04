@@ -3,6 +3,23 @@ part of firechat_kit;
 class FirechatConversation {
   DocumentReference _authorRef;
 
+  // ###########################
+  // CONFIGURATION GETTERS
+  // ###########################
+
+  bool get shouldTrackTypingActivity =>
+      FirechatKit.instance.configuration.typingIndicatorEnabled;
+  bool get shouldTrackFocusingActivity =>
+      FirechatKit.instance.configuration.focusingUserEnabled;
+  bool get shouldTrackReadRecepitsActivity =>
+      FirechatKit.instance.configuration.readReceiptsEnabled;
+
+  // ###########################
+  // STREAMS AND RELATED
+  // ###########################
+
+  // Chatroom stream
+
   BehaviorSubject<FirechatChatroom> _chatroomController;
   Observable<FirechatChatroom> get onChatroomUpdate =>
       _chatroomController.stream;
@@ -10,11 +27,26 @@ class FirechatConversation {
 
   DocumentReference get chatroomReference => _chatroom.selfReference;
 
+  // Messages Stream
+
   BehaviorSubject<List<FirechatMessage>> _messagesController;
   Observable<List<FirechatMessage>> get onMessagesUpdate =>
       _messagesController.stream;
 
   FirechatMessage _mostRecentMessage;
+
+  /// The list of all the [Stream] currently listening
+  /// for [FirechatMessage]s.
+  List<Stream<List<DocumentSnapshot>>> _streams = [];
+
+  /// The last lists of [FirechatMessage]s that each [Stream]
+  /// has returned.
+  Map<Stream<List<DocumentSnapshot>>, List<FirechatMessage>>
+      _listenersMessagesList = {};
+  List<FirechatMessage> get _allStreamedMessages =>
+      _listenersMessagesList.values.expand((x) => x).toList();
+
+  // Contacts in the chatroom
 
   /// Map of all the [Stream] associated to the user they are listening to,
   /// identified by their [DocumentReference].
@@ -28,14 +60,20 @@ class FirechatConversation {
   Map<DocumentReference, FirechatUser> _contactsByReference = {};
   List<FirechatUser> get contactsList => _contactsByReference.values.toList();
 
+  // Composing users
+
   BehaviorSubject<List<FirechatUser>> _composingUsersController =
       BehaviorSubject<List<FirechatUser>>.seeded([]);
 
   /// The [Stream] for the list of users that are currently typing a message.
   ///
   /// Note : this list excludes the current user.
-  Observable<List<FirechatUser>> get onComposingUsersUpdate =>
-      _composingUsersController.stream;
+  Observable<List<FirechatUser>> get onComposingUsersUpdate {
+    if (!shouldTrackTypingActivity) throw FirechatError.kTypingTrackingDisabled;
+    return _composingUsersController.stream;
+  }
+
+  // Focusing users
 
   BehaviorSubject<List<FirechatUser>> _focusingUsersController =
       BehaviorSubject<List<FirechatUser>>.seeded([]);
@@ -44,19 +82,11 @@ class FirechatConversation {
   ///
   /// Note : this list excludes the current user by default, but it can be
   /// changed in the configuration of [FirechatKit].
-  Observable<List<FirechatUser>> get onFocusingUsersUpdate =>
-      _focusingUsersController.stream;
-
-  /// The list of all the [Stream] currently listening
-  /// for [FirechatMessage]s.
-  List<Stream<List<DocumentSnapshot>>> _streams = [];
-
-  /// The last lists of [FirechatMessage]s that each [Stream]
-  /// has returned.
-  Map<Stream<List<DocumentSnapshot>>, List<FirechatMessage>>
-      _listenersMessagesList = {};
-  List<FirechatMessage> get _allStreamedMessages =>
-      _listenersMessagesList.values.expand((x) => x).toList();
+  Observable<List<FirechatUser>> get onFocusingUsersUpdate {
+    if (!shouldTrackFocusingActivity)
+      throw FirechatError.kFocusingTrackingDisabled;
+    return _focusingUsersController.stream;
+  }
 
   // ###########################
   // METHODS
@@ -185,26 +215,31 @@ class FirechatConversation {
   }
 
   void _updateComposingAndFocusingLists() {
-    // Composing users Stream update
-    List<DocumentReference> otherPeopleComposing = _chatroom.composingPeopleRef
-        .where((DocumentReference ref) => ref != _authorRef)
-        .toList();
-    _composingUsersController.sink.add(contactsList
-        .where((FirechatUser user) =>
-            otherPeopleComposing.contains(user.selfReference))
-        .toList());
+    if (shouldTrackTypingActivity) {
+      // Composing users Stream update
+      List<DocumentReference> otherPeopleComposing = _chatroom
+          .composingPeopleRef
+          .where((DocumentReference ref) => ref != _authorRef)
+          .toList();
+      _composingUsersController.sink.add(contactsList
+          .where((FirechatUser user) =>
+              otherPeopleComposing.contains(user.selfReference))
+          .toList());
+    }
 
-    // Focusing users Stream update
-    List<DocumentReference> peopleFocusing =
-        _chatroom.focusingPeopleRef.where((DocumentReference ref) {
-      if (FirechatKit.instance.configuration.countCurrentUSerInFocusList)
-        return true;
-      return (ref != _authorRef);
-    }).toList();
-    _focusingUsersController.sink.add(contactsList
-        .where(
-            (FirechatUser user) => peopleFocusing.contains(user.selfReference))
-        .toList());
+    if (shouldTrackFocusingActivity) {
+      // Focusing users Stream update
+      List<DocumentReference> peopleFocusing =
+          _chatroom.focusingPeopleRef.where((DocumentReference ref) {
+        if (FirechatKit.instance.configuration.countCurrentUSerInFocusList)
+          return true;
+        return (ref != _authorRef);
+      }).toList();
+      _focusingUsersController.sink.add(contactsList
+          .where((FirechatUser user) =>
+              peopleFocusing.contains(user.selfReference))
+          .toList());
+    }
   }
 
   //
@@ -273,6 +308,9 @@ class FirechatConversation {
   ///
   /// If an error occurs, a [FirechatError] is thrown
   Future<void> userIsFocusing(bool isFocusing) async {
+    if (!shouldTrackFocusingActivity)
+      throw FirechatError.kFocusingTrackingDisabled;
+
     if (_chatroom.isLocal || _chatroom.selfReference == null) return;
     // No need to call Firestore when its not needed.
     if ((isFocusing && _chatroom.focusingPeopleRef.contains(_authorRef) ||
@@ -296,6 +334,8 @@ class FirechatConversation {
   ///
   /// If an error occurs, a [FirechatError] is thrown
   Future<void> userIsComposing(bool isComposing) async {
+    if (!shouldTrackTypingActivity) throw FirechatError.kTypingTrackingDisabled;
+
     if (_chatroom.isLocal || _chatroom.selfReference == null) return;
     // No need to call Firestore when its not needed.
     if ((isComposing && _chatroom.composingPeopleRef.contains(_authorRef) ||
@@ -344,6 +384,9 @@ class FirechatConversation {
         date: DateTime.now());
 
     await FirestoreMessageInterface().send(messageToSend);
+
+    if (!shouldTrackReadRecepitsActivity) return;
+
     await FirestoreChatroomInterface()
         .updateLastMessageFor(chatroom: _chatroom, message: messageToSend);
   }
@@ -399,18 +442,24 @@ class FirechatConversation {
   /// If the current user is currently focusing the conversation, the messages
   /// will be marked as read.
   Future<void> _markMessagesAsReadIfFocusing() async {
+    if (!shouldTrackReadRecepitsActivity)
+      throw FirechatError.kReadReceiptsDisabled;
+
     if (!_chatroom.focusingPeopleRef.contains(_authorRef)) return;
 
     await currentUserReadAllMessages();
   }
 
   Future<void> markMessagesAsRead() async {
+    if (!shouldTrackReadRecepitsActivity)
+      throw FirechatError.kReadReceiptsDisabled;
+
     if (FirechatKit.instance.configuration.automaticallyReadMessages &&
         _chatroom.focusingPeopleRef.contains(_authorRef))
       print(
           """FirechatKit is configured to automatically mark the messages as read when the current user is focusing the chatroom.
           [FirechatConversation.markMessagesAsRead()] has been called while the current user was focusing the chatroom.
-          While this does not affect the behaviour of Firechat, a Firestore request is performed twice, which is unnécessary.
+          While this does not affect the behaviour of Firechat, a Firestore request is performed twice, which is unnecessary.
           You may want to check and remove unnecessary calls to this method. 
           """);
     await currentUserReadAllMessages();
@@ -427,6 +476,9 @@ class FirechatConversation {
   /// to if the last seen messages of the other members of the chatrooms cannot
   /// be found among the streamed ones, it will be considered anterior.
   bool messageIsReadByOthers(FirechatMessage message) {
+    if (!shouldTrackReadRecepitsActivity)
+      throw FirechatError.kReadReceiptsDisabled;
+
     List<DocumentReference> lastSeenMessageRefForOthers = _chatroom
         .lastMessagesRead.keys
         .where((DocumentReference ref) => ref != _authorRef)
