@@ -1,6 +1,11 @@
 part of firechat_kit;
 
-enum FirechatChatroomType { group, oneToOne }
+enum FirechatChatroomType {
+  groupOnly,
+  oneToOneOnly,
+  publicOnly,
+  groupAndOneToOne
+}
 
 class FirechatChatroomKeys {
   static final String kTitle = "title";

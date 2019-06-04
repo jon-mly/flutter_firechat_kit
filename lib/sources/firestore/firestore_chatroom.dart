@@ -167,7 +167,7 @@ class FirestoreChatroomInterface {
     List<FirechatChatroom> candidates = await Firestore.instance
         .collection(_chatroomsPath)
         .where(FirechatChatroomKeys.kChatroomTypeIndex,
-            isEqualTo: FirechatChatroomType.oneToOne.index)
+            isEqualTo: FirechatChatroomType.oneToOneOnly.index)
         .where(FirechatChatroomKeys.kPeopleRef, arrayContains: firstUserRef)
         .getDocuments()
         .then((QuerySnapshot snap) => snap.documents
@@ -236,6 +236,22 @@ class FirestoreChatroomInterface {
     if (chatroomRef == null) throw FirechatError.kNullDocumentReferenceError;
 
     chatroomRef.updateData({FirechatChatroomKeys.kTitle: name}).catchError((e) {
+      print(e);
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
+
+  /// Updates the [chatroom.peopleRef] field on Firestore.
+  ///
+  /// If on error occurs, a [FirechatError] is thrown.
+  Future<void> updateChatroomParticipants(
+      {@required List<DocumentReference> newPeopleRef,
+      @required DocumentReference chatroomReference}) async {
+    if (chatroomReference == null)
+      throw FirechatError.kNullDocumentReferenceError;
+
+    chatroomReference.updateData(
+        {FirechatChatroomKeys.kPeopleRef: newPeopleRef}).catchError((e) {
       print(e);
       throw FirechatError.kFirestoreChatroomUploadError;
     });

@@ -122,6 +122,10 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
     _conversation.setChatroomName(name: newName);
   }
 
+  Future<void> _addSomeoneToTheConversation({@required String userId}) async {
+    await _conversation.addUserToConversation(userId: userId);
+  }
+
   //
   // ############ ACTION DIALOG
   //
@@ -151,6 +155,38 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
                 onPressed: () {
                   Navigator.of(context).pop();
                   _editName(_dialogController.text);
+                },
+              )
+            ],
+          );
+        });
+  }
+
+  Future<void> _presentAddSomeoneToConversation() async {
+    TextEditingController _dialogController = TextEditingController();
+    await showDialog<String>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            contentPadding: EdgeInsets.all(16.0),
+            content: TextField(
+              autofocus: true,
+              autocorrect: false,
+              controller: _dialogController,
+              decoration: InputDecoration(
+                  hintText:
+                      "Enter the ID of the user you want to add to the conversation"),
+            ),
+            actions: <Widget>[
+              IconButton(
+                icon: Icon(Icons.cancel, color: Colors.teal),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              IconButton(
+                icon: Icon(Icons.open_in_new, color: Colors.teal),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _addSomeoneToTheConversation(userId: _dialogController.text);
                 },
               )
             ],
@@ -378,6 +414,11 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
                   color: Colors.white,
                   onPressed: () => _presentNameEditTextField(chatroom.title),
                 ),
+                IconButton(
+                  icon: Icon(Icons.group_add),
+                  color: Colors.white,
+                  onPressed: _presentAddSomeoneToConversation,
+                )
               ],
             ),
             body: Column(
