@@ -8,6 +8,31 @@ class FirechatKitConfiguration {
   /// Default : ""
   String basePath;
 
+  /// Indicates if the read receipts feature is enabled.
+  ///
+  /// If you do not plan on using this feature, make sure to deactivate it in
+  /// order to reduce the number of calls to Firestore.
+  ///
+  /// Default : enabled
+  bool readReceiptsEnabled;
+
+  /// Indicates if the feature of user focusing a chatroom (being active on it)
+  /// if enabled.
+  ///
+  /// If you do not plan on using this feature, make sure to deactivate it in
+  /// order to reduce the number of calls to Firestore.
+  ///
+  /// Default : enabled
+  bool focusingUserEnabled;
+
+  /// Indicates if the feature of typing tracking should be enabled.
+  ///
+  /// If you do not plan on using this feature, make sure to deactivate it in
+  /// order to reduce the number of calls to Firestore.
+  ///
+  /// Default : enabled
+  bool typingIndicatorEnabled;
+
   /// Indicates if the current user should be automatically marked as having
   /// read the most recent messages of a chatroom when they are focusing it.
   ///
@@ -25,6 +50,9 @@ class FirechatKitConfiguration {
 
   FirechatKitConfiguration(
       {this.basePath = "",
+      this.focusingUserEnabled = true,
+      this.readReceiptsEnabled = true,
+      this.typingIndicatorEnabled = ture,
       this.automaticallyReadMessages = true,
       this.countCurrentUSerInFocusList = false})
       : assert(basePath.split("/").length % 2 == 0);
@@ -33,5 +61,8 @@ class FirechatKitConfiguration {
     this.basePath = "";
     this.automaticallyReadMessages = true;
     this.countCurrentUSerInFocusList = false;
+    this.focusingUserEnabled = true;
+    this.readReceiptsEnabled = true;
+    this.typingIndicatorEnabled = true;
   }
 }
