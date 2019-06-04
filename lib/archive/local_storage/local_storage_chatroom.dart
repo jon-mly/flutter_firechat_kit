@@ -1,1 +1,1 @@
-part of firechat_kit;
+//part of firechat_kit;
