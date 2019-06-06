@@ -466,7 +466,9 @@ class FirechatConversation {
     // adds the user
     await FirestoreChatroomInterface()
         .updateChatroomParticipants(
-            newPeopleRef: _chatroom.peopleRef..add(userToAdd),
+            newPeopleRef: []
+              ..addAll(_chatroom.peopleRef)
+              ..add(userToAdd),
             chatroomReference: _chatroom.selfReference)
         .catchError((e) {
       if (e is FirechatError) throw e;

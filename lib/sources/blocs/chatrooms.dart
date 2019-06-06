@@ -150,7 +150,7 @@ class FirechatChatrooms {
 
     // No candidate has been found : a new conversation is to be created.
     FirechatChatroom localChatroom = FirechatChatroom(
-        chatroomType: FirechatChatroomType.oneToOne,
+        chatroomType: FirechatChatroomType.oneToOneOnly,
         peopleRef: [userDocumentReference, contactRef],
         lastMessageDate: DateTime.now(),
         composingPeopleRef: [],
@@ -266,7 +266,7 @@ class FirechatChatrooms {
 
   /// Indicates if the last message of the [chatroom] has not been read yet
   /// by the current user.
-  bool currentUserHasUnreadIn({@required FirechatChatroom chatroom}) {
+  bool currentUserHasUnreadMessagesIn({@required FirechatChatroom chatroom}) {
     // Firechat follows a principle saying that if a given message is
     // read, all the previous ones are read.
     // This way, if the last message of the given chatroom is read by the
@@ -274,7 +274,7 @@ class FirechatChatrooms {
     //
     // First case : no reference of the current user : they have read no
     // messages.
-    if (chatroom.lastMessagesRead[userDocumentReference] == null) return false;
+    if (chatroom.lastMessagesRead[userDocumentReference] == null) return true;
     return (chatroom.lastMessagesRead[userDocumentReference] !=
         chatroom.lastMessageRef);
   }

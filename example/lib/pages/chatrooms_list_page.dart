@@ -152,7 +152,7 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
             FirechatMessage lastMessage = FirechatKit.instance.chatrooms
                 .lastMessageFor(chatroom: chatroom);
             bool isUpToDate = !FirechatKit.instance.chatrooms
-                .currentUserHasUnreadIn(chatroom: chatroom);
+                .currentUserHasUnreadMessagesIn(chatroom: chatroom);
             String title = (chatroom.title != null && chatroom.title.isNotEmpty)
                 ? chatroom.title
                 : "${contacts.map((contact) => contact.displayName ?? contact.userId)}";
@@ -166,7 +166,7 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
               ),
               onTap: () => _getSelectedConversation(chatroom: chatroom),
               subtitle: Text(
-                lastMessage?.content,
+                lastMessage?.content ?? "",
                 style: TextStyle(
                     fontWeight:
                         (isUpToDate) ? FontWeight.normal : FontWeight.bold),
