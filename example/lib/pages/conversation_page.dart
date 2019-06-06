@@ -127,7 +127,7 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
   }
 
   Future<void> _quitConversation() async {
-    // TODO: quit conversation
+    await _conversation.removeSelfFromConversation();
     Navigator.of(context).pop();
   }
 

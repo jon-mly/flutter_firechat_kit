@@ -476,6 +476,44 @@ class FirechatConversation {
     });
   }
 
+  /// Removes the current user from the [_chatroom].
+  ///
+  /// This calls [removeUserFromConversation] using [_authorRef].
+  ///
+  /// See also the documentation of [removeUserFromConversation].
+  Future<void> removeSelfFromConversation() async {
+    await removeUserFromConversation(userRef: _authorRef);
+  }
+
+  /// Removes the [FirechatUser] identified by [userRef] of the [_chatroom].
+  ///
+  /// If the [_chatroom] is [FirechatChatroomType.oneToOneOnly], a
+  /// [FirechatError] is thrown.
+  ///
+  /// If the user was already added, a [FirechatError] is thrown.
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  Future<void> removeUserFromConversation(
+      {@required DocumentReference userRef}) async {
+    if (_chatroom.chatroomType == FirechatChatroomType.oneToOneOnly)
+      throw FirechatError.kCannotRemovePeopleToOneToOneChatroom;
+
+    if (!_chatroom.peopleRef.contains(userRef))
+      throw FirechatError.kUserNotInChatroom;
+
+    // removes the user
+    await FirestoreChatroomInterface()
+        .updateChatroomParticipants(
+            newPeopleRef: []
+              ..addAll(_chatroom.peopleRef)
+              ..remove(userRef),
+            chatroomReference: _chatroom.selfReference)
+        .catchError((e) {
+      if (e is FirechatError) throw e;
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
+
   /// Exports the [FirechatChatroom] to Firestore.
   ///
   /// This allows to then set up the [Stream]s and to follow the updates related
