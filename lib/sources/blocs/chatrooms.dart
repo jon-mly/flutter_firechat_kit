@@ -150,7 +150,7 @@ class FirechatChatrooms {
 
     // No candidate has been found : a new conversation is to be created.
     FirechatChatroom localChatroom = FirechatChatroom(
-        chatroomType: FirechatChatroomType.oneToOne,
+        chatroomType: FirechatChatroomType.oneToOneOnly,
         peopleRef: [userDocumentReference, contactRef],
         lastMessageDate: DateTime.now(),
         composingPeopleRef: [],
@@ -251,6 +251,21 @@ class FirechatChatrooms {
     return _lastMessagesByChatroom[chatroom.selfReference];
   }
 
+  /// Returns the [FirechatUser] of the sender of the given [message].
+  ///
+  /// If none is found, null is returned.
+  FirechatUser senderOf({@required FirechatMessage message}) {
+    return contactsList.firstWhere(
+        (FirechatUser candidate) =>
+            candidate.selfReference == message.authorRef,
+        orElse: () => null);
+  }
+
+  /// Indicates if the current user has sent the given [message].
+  bool currentUserSent({@required FirechatMessage message}) {
+    return senderOf(message: message).selfReference == userDocumentReference;
+  }
+
   /// Returns the list of [FirechatUser] who take part in the [chatroom].
   ///
   /// This list does not include the current user.
@@ -266,15 +281,15 @@ class FirechatChatrooms {
 
   /// Indicates if the last message of the [chatroom] has not been read yet
   /// by the current user.
-  bool currentUserHasUnreadIn({@required FirechatChatroom chatroom}) {
+  bool currentUserHasUnreadMessagesIn({@required FirechatChatroom chatroom}) {
     // Firechat follows a principle saying that if a given message is
-    // read, all the previous ones are read.
+    // read, all the previous ones are read as well.
     // This way, if the last message of the given chatroom is read by the
     // current user, they are up to date.
     //
     // First case : no reference of the current user : they have read no
     // messages.
-    if (chatroom.lastMessagesRead[userDocumentReference] == null) return false;
+    if (chatroom.lastMessagesRead[userDocumentReference] == null) return true;
     return (chatroom.lastMessagesRead[userDocumentReference] !=
         chatroom.lastMessageRef);
   }

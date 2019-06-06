@@ -12,10 +12,12 @@ class ChatroomsListPage extends StatefulWidget {
 }
 
 class _ChatroomsListPageState extends State<ChatroomsListPage> {
+  FirechatChatrooms _chatrooms;
+
   @override
   void initState() {
     super.initState();
-    FirechatKit.instance.prepareChatrooms();
+    _chatrooms = FirechatKit.instance.prepareChatrooms();
   }
 
   //
@@ -131,7 +133,7 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
 
   Widget _chatroomsList() {
     return StreamBuilder(
-      stream: FirechatKit.instance.chatrooms.onChatroomsUpdate,
+      stream: _chatrooms.onChatroomsUpdate,
       builder: (BuildContext context,
           AsyncSnapshot<List<FirechatChatroom>> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
@@ -147,15 +149,26 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
           itemCount: chatrooms.length,
           itemBuilder: (BuildContext context, int index) {
             FirechatChatroom chatroom = chatrooms[index];
-            List<FirechatUser> contacts = FirechatKit.instance.chatrooms
-                .otherPeopleIn(chatroom: chatroom);
-            FirechatMessage lastMessage = FirechatKit.instance.chatrooms
-                .lastMessageFor(chatroom: chatroom);
-            bool isUpToDate = !FirechatKit.instance.chatrooms
-                .currentUserHasUnreadIn(chatroom: chatroom);
+
+            List<FirechatUser> contacts =
+                _chatrooms.otherPeopleIn(chatroom: chatroom);
+            FirechatMessage lastMessage =
+                _chatrooms.lastMessageFor(chatroom: chatroom);
+            bool isUpToDate =
+                !_chatrooms.currentUserHasUnreadMessagesIn(chatroom: chatroom);
+            FirechatUser sender = _chatrooms.senderOf(message: lastMessage);
+
             String title = (chatroom.title != null && chatroom.title.isNotEmpty)
                 ? chatroom.title
                 : "${contacts.map((contact) => contact.displayName ?? contact.userId)}";
+
+            String subtitle;
+            if (_chatrooms.currentUserSent(message: lastMessage)) {
+              subtitle = "Me : ${lastMessage.content ?? ""}";
+            } else {
+              subtitle =
+                  "${sender.displayName ?? sender.userId} : ${lastMessage.content ?? ""}";
+            }
 
             return ListTile(
               title: Text(
@@ -166,7 +179,7 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
               ),
               onTap: () => _getSelectedConversation(chatroom: chatroom),
               subtitle: Text(
-                lastMessage?.content,
+                subtitle,
                 style: TextStyle(
                     fontWeight:
                         (isUpToDate) ? FontWeight.normal : FontWeight.bold),
@@ -183,7 +196,7 @@ class _ChatroomsListPageState extends State<ChatroomsListPage> {
 
   Widget _buildPage() {
     return StreamBuilder(
-      stream: FirechatKit.instance.chatrooms.onContactsUpdate,
+      stream: _chatrooms.onContactsUpdate,
       builder: (BuildContext context, _) {
         return _chatroomsList();
       },

@@ -1,10 +1,12 @@
 part of firechat_kit;
 
 class FirechatConversation {
+  // region VARIABLES
+
   DocumentReference _authorRef;
 
   // ###########################
-  // CONFIGURATION GETTERS
+  // region CONFIGURATION GETTERS
   // ###########################
 
   bool get shouldTrackTypingActivity =>
@@ -14,8 +16,10 @@ class FirechatConversation {
   bool get shouldTrackReadRecepitsActivity =>
       FirechatKit.instance.configuration.readReceiptsEnabled;
 
+  // endregion
+
   // ###########################
-  // STREAMS AND RELATED
+  //  region STREAMS AND RELATED
   // ###########################
 
   // Chatroom stream
@@ -88,12 +92,16 @@ class FirechatConversation {
     return _focusingUsersController.stream;
   }
 
+  // endregion
+
+  // endregion
+
   // ###########################
-  // METHODS
+  // region METHODS
   // ###########################
 
   //
-  // ########### CONSTRUCTORS
+  // region CONSTRUCTORS
   //
 
   FirechatConversation.local(
@@ -130,8 +138,11 @@ class FirechatConversation {
     _contactsController.close();
   }
 
+  // endregion
+
   //
-  // ########### PAGINATED STREAMS
+  // region PAGINATED STREAMS
+  //
 
   /// Installs the [Stream] for the [FirechatChatroom], and the [Stream] for
   /// the most recent [FirechatMessage]s and the ones that will be published
@@ -242,8 +253,10 @@ class FirechatConversation {
     }
   }
 
+  // endregion
+
   //
-  // ########## CONTACTS DATA
+  // region CONTACTS DATA
   //
 
   /// Based on the streamed messages, all the [FirechatUser] of the conversation
@@ -296,8 +309,10 @@ class FirechatConversation {
         orElse: () => null);
   }
 
+  // endregion
+
   //
-  // ########## COMPOSING & FOCUSING PROCESS
+  // region COMPOSING & FOCUSING PROCESS
   //
 
   /// Adds or removes the current user from the list of people who are currently
@@ -353,8 +368,10 @@ class FirechatConversation {
     });
   }
 
+  // endregion
+
   //
-  // ########## ACTIONS
+  // region ACTIONS
   //
 
   /// Creates a new instance of [FirechatMessage] and publishes it in Firestore.
@@ -419,6 +436,84 @@ class FirechatConversation {
     });
   }
 
+  /// Fetches the [FirechatUser] designated by the given [userId] and adds
+  /// them to the conversation if they were not in the conversation already.
+  ///
+  /// If the [_chatroom] is [FirechatChatroomType.oneToOneOnly], a
+  /// [FirechatError] is thrown.
+  ///
+  /// If the user was already added, a [FirechatError] is thrown.
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  Future<void> addUserToConversation({@required String userId}) async {
+    if (_chatroom.chatroomType == FirechatChatroomType.oneToOneOnly)
+      throw FirechatError.kCannotAddPeopleToOneToOneChatroom;
+
+    // Fetches the reference of the user to add.
+    DocumentReference userToAdd = await FirestoreUserInterface()
+        .userDocumentReferenceByUserId(userId: userId)
+        .catchError((e) {
+      print(e);
+      if (e is FirechatError) throw e;
+      throw FirechatError.kNoUserFoundFromId;
+    });
+    if (userToAdd == null) throw FirechatError.kNoUserFoundFromId;
+
+    // checks if the user exists, and if the user is not already in the conversation
+    if (_chatroom.peopleRef.contains(userToAdd))
+      throw FirechatError.kUserAlreadyInChatroom;
+
+    // adds the user
+    await FirestoreChatroomInterface()
+        .updateChatroomParticipants(
+            newPeopleRef: []
+              ..addAll(_chatroom.peopleRef)
+              ..add(userToAdd),
+            chatroomReference: _chatroom.selfReference)
+        .catchError((e) {
+      if (e is FirechatError) throw e;
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
+
+  /// Removes the current user from the [_chatroom].
+  ///
+  /// This calls [removeUserFromConversation] using [_authorRef].
+  ///
+  /// See also the documentation of [removeUserFromConversation].
+  Future<void> removeSelfFromConversation() async {
+    await removeUserFromConversation(userRef: _authorRef);
+  }
+
+  /// Removes the [FirechatUser] identified by [userRef] of the [_chatroom].
+  ///
+  /// If the [_chatroom] is [FirechatChatroomType.oneToOneOnly], a
+  /// [FirechatError] is thrown.
+  ///
+  /// If the user was already added, a [FirechatError] is thrown.
+  ///
+  /// If an error occurs, a [FirechatError] is thrown.
+  Future<void> removeUserFromConversation(
+      {@required DocumentReference userRef}) async {
+    if (_chatroom.chatroomType == FirechatChatroomType.oneToOneOnly)
+      throw FirechatError.kCannotRemovePeopleToOneToOneChatroom;
+
+    if (!_chatroom.peopleRef.contains(userRef))
+      throw FirechatError.kUserNotInChatroom;
+
+    // removes the user
+    await FirestoreChatroomInterface()
+        .updateChatroomParticipants(
+            newPeopleRef: []
+              ..addAll(_chatroom.peopleRef)
+              ..remove(userRef),
+            chatroomReference: _chatroom.selfReference)
+        .catchError((e) {
+      if (e is FirechatError) throw e;
+      throw FirechatError.kFirestoreChatroomUploadError;
+    });
+  }
+
   /// Exports the [FirechatChatroom] to Firestore.
   ///
   /// This allows to then set up the [Stream]s and to follow the updates related
@@ -435,8 +530,10 @@ class FirechatConversation {
     _streamChatroomAndFirstMessages();
   }
 
+  // endregion
+
   //
-  // ########## READ RECEIPT AUTOMATION
+  // region READ RECEIPT AUTOMATION
   //
 
   /// If the current user is currently focusing the conversation, the messages
@@ -465,8 +562,10 @@ class FirechatConversation {
     await currentUserReadAllMessages();
   }
 
+  // endregion
+
   //
-  // ########## HELPERS
+  // region HELPERS
   //
 
   /// Indicates if the given [message] has been read by at least someone other
@@ -496,8 +595,10 @@ class FirechatConversation {
         candidate.selfReference == message.selfReference);
   }
 
+  // endregion
+
   //
-  // ########## CHATROOM DETAILS
+  // region CHATROOM DETAILS
   //
 
   /// Sets the given [map] to [_chatroom.details] and uploads the field to
@@ -512,9 +613,10 @@ class FirechatConversation {
       throw FirechatError.kFirestoreChatroomUploadError;
     });
   }
+  // endregion
 
   //
-  // ########## CONVERSATION NAME
+  // region CONVERSATION NAME
   //
 
   /// Sets the given [name] as the [_chatroom.title] and uploads the field to
@@ -529,9 +631,10 @@ class FirechatConversation {
       throw FirechatError.kFirestoreChatroomUploadError;
     });
   }
+  // endregion
 
   //
-  // ########## SORTING
+  // region SORTING
   //
 
   /// Orders the given [list] from the newer message to the oldest.
@@ -544,4 +647,7 @@ class FirechatConversation {
         return -m1.date.compareTo(m2.date);
       });
   }
+  // endregion
+
+  // endregion
 }

@@ -45,6 +45,10 @@ class FirechatError extends Error {
       "The DocumentReference of the given Message does not lead to anything in Firestore.");
   static final FirechatError kNullChatroomError =
       FirechatError("The Chatroom given in parameter is null.");
+  static final FirechatError kCannotAddPeopleToOneToOneChatroom = FirechatError(
+      "The Chatroom is set to allow only one to one conversation. Thus, a new member cannot be added to the chatroom");
+  static final FirechatError kCannotRemovePeopleToOneToOneChatroom = FirechatError(
+      "The Chatroom is set to allow only one to one conversation. Thus, none of the memebers can exit the conversation.");
   static final FirechatError kNoUserFoundFromId = FirechatError(
       "No FirechatUser has been found to be associated with the given Id.");
   static final FirechatError kTypingTrackingDisabled = FirechatError(
@@ -53,6 +57,10 @@ class FirechatError extends Error {
       "The feature of track if the users are focusing the chatroom is disabled. The requested element in the code, being related to this feature, is disabled as well. To enable it, you might want to edit the Configuration of FirechatKit.");
   static final FirechatError kReadReceiptsDisabled = FirechatError(
       "The feature of read receipts is disabled. The requested element in the code, being related to this feature, is disabled as well. To enable it, you might want to edit the Configuration of FirechatKit.");
+  static final FirechatError kUserAlreadyInChatroom = FirechatError(
+      "The user is already in the conversation and thus cannot be added.");
+  static final FirechatError kUserNotInChatroom = FirechatError(
+      "The user is not in the conversation and thus cannot be removed.");
 
   String toString() {
     return "Message : \n$message, Optional content : \n${optionalContent.toString()}";
