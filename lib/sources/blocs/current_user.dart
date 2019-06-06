@@ -40,10 +40,23 @@ class FirechatCurrentUser {
   /// - their [displayName]
   /// - their [userId], which is to be changed with care since this is the
   /// ID of the user in your database. See also [FirechatUser.userId].
-  void set({String avatarUrl, String displayName, String userId}) {
+  /// - the [email] of the user
+  /// - the [phoneNumber] of the user
+  /// - the [details] you might want to be available directly in Firestore.
+  void set(
+      {String avatarUrl,
+      String displayName,
+      String userId,
+      String email,
+      String phoneNumber,
+      Map<String, dynamic> details}) {
     FirechatUser mostRecentData = _user;
     if (avatarUrl != null) mostRecentData.avatarUrl = avatarUrl;
     if (displayName != null) mostRecentData.displayName = displayName;
+    if (userId != null) mostRecentData.userId = userId;
+    if (email != null) mostRecentData.email = email;
+    if (phoneNumber != null) mostRecentData.phoneNumber = phoneNumber;
+    if (details != null) mostRecentData.details = details;
     FirestoreUserInterface().uploadFirechatUser(mostRecentData);
   }
 }
