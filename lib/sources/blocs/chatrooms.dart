@@ -251,6 +251,21 @@ class FirechatChatrooms {
     return _lastMessagesByChatroom[chatroom.selfReference];
   }
 
+  /// Returns the [FirechatUser] of the sender of the given [message].
+  ///
+  /// If none is found, null is returned.
+  FirechatUser senderOf({@required FirechatMessage message}) {
+    return contactsList.firstWhere(
+        (FirechatUser candidate) =>
+            candidate.selfReference == message.authorRef,
+        orElse: () => null);
+  }
+
+  /// Indicates if the current user has sent the given [message].
+  bool currentUserSent({@required FirechatMessage message}) {
+    return senderOf(message: message).selfReference == userDocumentReference;
+  }
+
   /// Returns the list of [FirechatUser] who take part in the [chatroom].
   ///
   /// This list does not include the current user.
@@ -268,7 +283,7 @@ class FirechatChatrooms {
   /// by the current user.
   bool currentUserHasUnreadMessagesIn({@required FirechatChatroom chatroom}) {
     // Firechat follows a principle saying that if a given message is
-    // read, all the previous ones are read.
+    // read, all the previous ones are read as well.
     // This way, if the last message of the given chatroom is read by the
     // current user, they are up to date.
     //

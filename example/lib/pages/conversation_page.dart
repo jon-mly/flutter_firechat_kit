@@ -126,6 +126,11 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
     await _conversation.addUserToConversation(userId: userId);
   }
 
+  Future<void> _quitConversation() async {
+    // TODO: quit conversation
+    Navigator.of(context).pop();
+  }
+
   //
   // ############ ACTION DIALOG
   //
@@ -409,6 +414,11 @@ class _ConversationPageState extends State<ConversationPage> with RouteAware {
                 onPressed: Navigator.of(context).pop,
               ),
               actions: <Widget>[
+                IconButton(
+                  icon: Icon(Icons.remove),
+                  color: Colors.white,
+                  onPressed: _quitConversation,
+                ),
                 IconButton(
                   icon: Icon(Icons.edit),
                   color: Colors.white,
