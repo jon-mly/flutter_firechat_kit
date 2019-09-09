@@ -43,11 +43,14 @@ configured Firebase for your application yet, you can follow these steps :
 
 1. Go to the Firebase console
 2. Create a new project 
-3. Configure your application to use Firebase.
+3. Configure your application to use Firebase by following the step 3 of this tutorial : 
+https://firebase.google.com/docs/flutter/setup
+
+You do not need to import any other packages unless needed for another part of your app.
 
 #### FirechatKit specific set up
 
-1. In the Firebase dashboard, under **Authentication** > **Sign-in method**, enable
+In the Firebase dashboard, under **Authentication** > **Sign-in method**, enable
 Anonymous Authentication
 
 ### Example app
