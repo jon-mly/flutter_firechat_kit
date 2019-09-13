@@ -46,7 +46,7 @@ class FirechatKitConfiguration {
   /// [FirechatConversation].
   ///
   /// Default : false
-  bool countCurrentUSerInFocusList;
+  bool countCurrentUserInFocusList;
 
   FirechatKitConfiguration(
       {this.basePath = "",
@@ -54,13 +54,13 @@ class FirechatKitConfiguration {
       this.readReceiptsEnabled = true,
       this.typingIndicatorEnabled = true,
       this.automaticallyReadMessages = true,
-      this.countCurrentUSerInFocusList = false})
+      this.countCurrentUserInFocusList = false})
       : assert(basePath.split("/").length % 2 == 0);
 
   FirechatKitConfiguration.defaultConfiguration() {
     this.basePath = "";
     this.automaticallyReadMessages = true;
-    this.countCurrentUSerInFocusList = false;
+    this.countCurrentUserInFocusList = false;
     this.focusingUserEnabled = true;
     this.readReceiptsEnabled = true;
     this.typingIndicatorEnabled = true;

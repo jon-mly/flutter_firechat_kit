@@ -14,39 +14,39 @@ class FirestoreUserInterface {
     return ref.snapshots();
   }
 
-  /// Fetches and returns the snapshot of the FirechatUser designated by
-  /// the given [firebaseUserId].
-  ///
-  /// If [firebaseUserId] is null or if it has no match with an existing
-  /// instance, null is returned.
-  ///
-  /// If an error occurs, a [FirechatError] is thrown.
-  Future<DocumentSnapshot> userDocumentRefByFirebaseId(
-      {@required String firebaseUserId}) async {
-    if (firebaseUserId == null || firebaseUserId.isEmpty) return null;
-    return await Firestore.instance
-        .collection(_usersPath)
-        .where(FirechatUserKeys.kFirebaseUserId, isEqualTo: firebaseUserId)
-        .getDocuments()
-        .then((QuerySnapshot snap) {
-      if (snap.documents.isEmpty) return null;
-      return snap.documents.first;
-    }).catchError((e) {
-      print(e);
-      throw FirechatError.kFirestoreUserFetchError;
-    });
-  }
+//  /// Fetches and returns the snapshot of the FirechatUser designated by
+//  /// the given [firebaseUserId].
+//  ///
+//  /// If [firebaseUserId] is null or if it has no match with an existing
+//  /// instance, null is returned.
+//  ///
+//  /// If an error occurs, a [FirechatError] is thrown.
+//  Future<DocumentSnapshot> userDocumentRefByFirebaseId(
+//      {@required String firebaseUserId}) async {
+//    if (firebaseUserId == null || firebaseUserId.isEmpty) return null;
+//    return await Firestore.instance
+//        .collection(_usersPath)
+//        .where(FirechatUserKeys.kFirebaseUserId, isEqualTo: firebaseUserId)
+//        .getDocuments()
+//        .then((QuerySnapshot snap) {
+//      if (snap.documents.isEmpty) return null;
+//      return snap.documents.first;
+//    }).catchError((e) {
+//      print(e);
+//      throw FirechatError.kFirestoreUserFetchError;
+//    });
+//  }
 
-  /// Returns the [DocumentSnapshot] of the given [ref].
-  ///
-  /// If an error occurs, a [FirechatError] is thrown.
-  Future<DocumentSnapshot> userFromReference(
-      {@required DocumentReference ref}) async {
-    return ref.get().catchError((e) {
-      print(e);
-      throw FirechatError.kFirestoreUserFetchError;
-    });
-  }
+//  /// Returns the [DocumentSnapshot] of the given [ref].
+//  ///
+//  /// If an error occurs, a [FirechatError] is thrown.
+//  Future<DocumentSnapshot> userFromReference(
+//      {@required DocumentReference ref}) async {
+//    return ref.get().catchError((e) {
+//      print(e);
+//      throw FirechatError.kFirestoreUserFetchError;
+//    });
+//  }
 
   /// Fetches and returns the snapshot of the FirechatUser designated by
   /// the given [userId], which is the ID of the user in your database.

@@ -106,6 +106,7 @@ class FirechatKit {
   ///
   /// If an error occurs, this throws a [FirechatError].
   void logout() {
+    AuthInterface().logout();
     dispose();
   }
 
@@ -120,7 +121,7 @@ class FirechatKit {
   /// [login], a [FirechatError] will be thrown.
   ///
   /// Also, note that this step is only supposed to be done once. While it has
-  /// no impact expect more queries with Firestore, this may indicate that
+  /// no impact apart from more queries with Firestore, this may indicate that
   /// your app is calling this more than it should.
   ///
   /// Generally, if an error occurs, this will throw a [FirechatError].

@@ -18,7 +18,7 @@ class FirechatMessage {
 
   /// The date when the [FirechatMessage] has been sent.
   ///
-  /// Is expected to be converted from millisecondes since Epoch, as stocked
+  /// Is expected to be converted from milliseconds since Epoch, as stocked
   /// in the server.
   DateTime date;
 

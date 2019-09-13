@@ -242,7 +242,7 @@ class FirechatConversation {
       // Focusing users Stream update
       List<DocumentReference> peopleFocusing =
           _chatroom.focusingPeopleRef.where((DocumentReference ref) {
-        if (FirechatKit.instance.configuration.countCurrentUSerInFocusList)
+        if (FirechatKit.instance.configuration.countCurrentUserInFocusList)
           return true;
         return (ref != _authorRef);
       }).toList();

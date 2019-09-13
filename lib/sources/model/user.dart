@@ -54,7 +54,7 @@ class FirechatUser {
   /// While not provided, the value is null.
   String phoneNumber;
 
-  /// [Map] for custom details than can de added to the [FirechatChatroom].
+  /// [Map] for custom details than can de added to the [FirechatUser].
   ///
   /// These optional data are not handled by Firechat and is provided so you can
   /// link custom data to the chatroom directly in Firestore.
